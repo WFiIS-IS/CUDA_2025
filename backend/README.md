@@ -15,7 +15,7 @@ just
 or
 
 ```sh
-uv run fastapi dev
+uv run python -m app
 ```
 
 ## Adding dependencies

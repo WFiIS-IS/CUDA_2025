@@ -1,4 +1,4 @@
 default: dev
     
 dev:
-    uv run fastapi dev
+    uv run python -m app
