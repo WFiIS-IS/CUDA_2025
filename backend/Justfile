@@ -2,3 +2,9 @@ default: dev
     
 dev:
     uv run python -m app
+
+migrate:
+    uv run alembic upgrade head
+
+make-migration name:
+    uv run alembic revision --autogenerate -m {{name}}

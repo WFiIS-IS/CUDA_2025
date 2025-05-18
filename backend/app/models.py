@@ -1,44 +1,72 @@
-from __future__ import annotations
-
 import uuid
+from typing import Optional
 
 from sqlmodel import Field, Relationship, SQLModel
-
-SHORT_TEXT_LENGTH = 256
-LONG_TEXT_LENGTH = 1024
 
 
 class TagLinkAssociation(SQLModel, table=True):
     tag_name: str = Field(foreign_key="tag.name", primary_key=True)
-    tag: Tag = Relationship(back_populates="links")
-
-    link_id: uuid.UUID = Field(foreign_key="linkentry.id", primary_key=True)
-    link: LinkEntry = Relationship(back_populates="tags")
+    link_id: uuid.UUID = Field(foreign_key="link_entry.id", primary_key=True)
 
 
-class LinkEntry(SQLModel, table=True):
+class LinkEntryBase(SQLModel):
+    url: str = Field(max_length=1024, index=True)
+    title: str | None = Field(default=None, max_length=256)
+    description: str | None = Field(default=None, max_length=1024)
+
+
+class LinkEntryCreate(LinkEntryBase):
+    pass
+
+
+class LinkEntryUpdate(LinkEntryBase):
+    url: str | None = Field(default=None, max_length=1024)  # type: ignore
+    title: str | None = Field(default=None, max_length=256)
+    description: str | None = Field(default=None, max_length=1024)
+
+
+class LinkEntryPublic(LinkEntryBase):
+    id: uuid.UUID
+
+
+class LinkEntry(LinkEntryBase, table=True):
+    __tablename__ = "link_entry"  # type: ignore
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    url: str = Field(max_length=LONG_TEXT_LENGTH)
-    title: str | None = Field(default=None, max_length=SHORT_TEXT_LENGTH)
-    description: str | None = Field(default=None, max_length=LONG_TEXT_LENGTH)
 
     collection_id: uuid.UUID = Field(foreign_key="collection.id", nullable=False)
-    collection: Collection = Relationship(
+    collection: "Collection" = Relationship(
         back_populates="links",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
-    ai_suggestion: LinkAISuggestion | None = Relationship(
+    ai_suggestion: Optional["LinkAISuggestion"] = Relationship(
         back_populates="link",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
-    tags: list[Tag] = Relationship(link_model=TagLinkAssociation)
+    tags: list["Tag"] = Relationship(link_model=TagLinkAssociation)
 
 
-class Collection(SQLModel, table=True):
+class CollectionBase(SQLModel):
+    name: str = Field(max_length=256, index=True)
+
+
+class CollectionCreate(CollectionBase):
+    pass
+
+
+class CollectionUpdate(CollectionBase):
+    name: str | None = Field(default=None, max_length=256)  # type: ignore
+
+
+class CollectionPublic(CollectionBase):
+    id: uuid.UUID
+
+
+class Collection(CollectionBase, table=True):
+    __tablename__ = "collection"  # type: ignore
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    name: str = Field(max_length=SHORT_TEXT_LENGTH)
     links: list[LinkEntry] = Relationship(
         back_populates="collection",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
@@ -46,11 +74,15 @@ class Collection(SQLModel, table=True):
 
 
 class LinkAISuggestion(SQLModel, table=True):
-    link_id: uuid.UUID = Field(foreign_key="linkentry.id", primary_key=True)
-    link: LinkEntry = Relationship(back_populates="suggestion")
-    title: str = Field(max_length=SHORT_TEXT_LENGTH)
-    description: str = Field(max_length=LONG_TEXT_LENGTH)
+    __tablename__ = "link_ai_suggestion"  # type: ignore
+
+    link_id: uuid.UUID = Field(foreign_key="link_entry.id", primary_key=True)
+    link: LinkEntry = Relationship(back_populates="ai_suggestion")
+    title: str = Field(max_length=256)
+    description: str = Field(max_length=1024)
 
 
 class Tag(SQLModel, table=True):
+    __tablename__ = "tag"  # type: ignore
+
     name: str = Field(max_length=64, primary_key=True)
