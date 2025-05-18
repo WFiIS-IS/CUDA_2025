@@ -6,12 +6,10 @@
   "scripts": {
     "dev": "vite --port 3000",
     "start": "vite --port 3000",
-    "build": "vite build && tsc",
+    "build": "vite build",
     "serve": "vite preview",
-    "test": "vitest run",
-    "lint": "eslint",
-    "format": "prettier",
-    "check": "prettier --write . && eslint --fix"
+    "lint": "biome lint",
+    "format": "biome format --write"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.6",
@@ -29,19 +27,13 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@tanstack/eslint-config": "^0.1.0",
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/react": "^16.2.0",
-    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@biomejs/biome": "1.9.4",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^26.0.0",
-    "prettier": "^3.5.3",
-    "prettier-plugin-tailwindcss": "^0.6.11",
     "typescript": "^5.7.2",
     "vite": "^6.1.0",
-    "vitest": "^3.0.5",
     "web-vitals": "^4.2.4"
   }
 }
