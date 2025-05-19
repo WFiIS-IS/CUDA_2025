@@ -50,7 +50,8 @@
       "ms-python.vscode-pylance",
       "ms-ossdata.vscode-pgsql",
       "biomejs.biome",
-      "bradlc.vscode-tailwindcss"
+      "bradlc.vscode-tailwindcss",
+      "ms-azuretools.vscode-containers"
     ]
   }
 }
