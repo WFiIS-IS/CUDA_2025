@@ -1,11 +1,100 @@
-from bs4 import BeautifulSoup
-from playwright.sync_api import BrowserType, sync_playwright
-from playwright_stealth import stealth_sync
+# from bs4 import BeautifulSoup
+# from playwright.sync_api import BrowserType, sync_playwright
+# from playwright_stealth import stealth_sync
 
+
+# class Scrapper:
+#     """
+#     A web scrapper that uses Playwright to fetch and parse HTML content from a given URL, supporting JavaScript-rendered pages.
+#     Uses extra stealth by applying playwright-stealth plugin and modifying browser context and user agent.
+#     """
+
+#     def __init__(self, url: str):
+#         self.url = url
+#         self.soup = None
+
+#     def fetch(self):
+#         """
+#         Uses Playwright to launch a headless browser with stealth settings, navigate to the URL, and parse the rendered HTML with BeautifulSoup.
+#         """
+#         with sync_playwright() as p:
+#             browser: BrowserType = p.chromium.launch(headless=False)
+#             context = browser.new_context(
+#                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+#                 locale="en-US",
+#                 viewport={"width": 1920, "height": 1080},
+#                 java_script_enabled=True,
+#                 bypass_csp=True,
+#             )
+#             page = context.new_page()
+#             stealth_sync(page)  # Apply stealth
+#             page.goto(self.url)
+#             page.wait_for_load_state("networkidle")
+#             html = page.content()
+#             self.soup = BeautifulSoup(html, "html.parser")
+#             browser.close()
+#         return self.soup
+
+#     def get_title(self):
+#         """
+#         Returns the title of the web page.
+#         """
+#         if self.soup is None:
+#             self.fetch()
+#         if self.soup and self.soup.title:
+#             return self.soup.title.string
+#         return None
+
+#     def get_links(self):
+#         """
+#         Returns a list of all hyperlinks (anchor tags) on the page.
+#         """
+#         if self.soup is None:
+#             self.fetch()
+#         if self.soup:
+#             return [a.get("href") for a in self.soup.find_all("a", href=True)]
+#         return []
+
+#     def get_all_text(self):
+#         """
+#         Returns all visible text nodes from the HTML, concatenated as a single string.
+#         """
+#         if self.soup is None:
+#             self.fetch()
+#         if self.soup:
+#             # Remove script and style elements
+#             for tag in self.soup(["script", "style"]):
+#                 tag.decompose()
+#             # Get all visible text
+#             text = self.soup.get_text(separator=" ", strip=True)
+#             return text
+#         return ""
+
+
+# # Example usage:
+# scrapper = Scrapper(
+#     "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a"
+# )
+
+# print("RUNNED")
+
+# scrapper.fetch()
+# # print(scrapper.get_links())
+# # print(scrapper.get_links())
+# text = scrapper.get_all_text()
+# with open("scraped_text.txt", "w", encoding="utf-8") as f:
+#     f.write(text)
+# print("Text saved to scraped_text.txt")
+from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
+import asyncio
+
+# Import playwright_stealth for stealth mode
+from playwright_stealth import stealth_async
 
 class Scrapper:
     """
-    A web scrapper that uses Playwright to fetch and parse HTML content from a given URL, supporting JavaScript-rendered pages.
+    An asynchronous web scrapper that uses Playwright to fetch and parse HTML content from a given URL, supporting JavaScript-rendered pages.
     Uses extra stealth by applying playwright-stealth plugin and modifying browser context and user agent.
     """
 
@@ -13,54 +102,54 @@ class Scrapper:
         self.url = url
         self.soup = None
 
-    def fetch(self):
+    async def fetch(self):
         """
         Uses Playwright to launch a headless browser with stealth settings, navigate to the URL, and parse the rendered HTML with BeautifulSoup.
         """
-        with sync_playwright() as p:
-            browser: BrowserType = p.chromium.launch(headless=False)
-            context = browser.new_context(
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
                 locale="en-US",
                 viewport={"width": 1920, "height": 1080},
                 java_script_enabled=True,
                 bypass_csp=True,
             )
-            page = context.new_page()
-            stealth_sync(page)  # Apply stealth
-            page.goto(self.url)
-            page.wait_for_load_state("networkidle")
-            html = page.content()
+            page = await context.new_page()
+            await stealth_async(page)  # Apply stealth mode
+            await page.goto(self.url)
+            await page.wait_for_load_state("networkidle")
+            html = await page.content()
             self.soup = BeautifulSoup(html, "html.parser")
-            browser.close()
+            await browser.close()
         return self.soup
 
-    def get_title(self):
+    async def get_title(self):
         """
         Returns the title of the web page.
         """
         if self.soup is None:
-            self.fetch()
+            await self.fetch()
         if self.soup and self.soup.title:
             return self.soup.title.string
         return None
 
-    def get_links(self):
+    async def get_links(self):
         """
         Returns a list of all hyperlinks (anchor tags) on the page.
         """
         if self.soup is None:
-            self.fetch()
+            await self.fetch()
         if self.soup:
             return [a.get("href") for a in self.soup.find_all("a", href=True)]
         return []
 
-    def get_all_text(self):
+    async def get_all_text(self):
         """
         Returns all visible text nodes from the HTML, concatenated as a single string.
         """
         if self.soup is None:
-            self.fetch()
+            await self.fetch()
         if self.soup:
             # Remove script and style elements
             for tag in self.soup(["script", "style"]):
@@ -69,16 +158,46 @@ class Scrapper:
             text = self.soup.get_text(separator=" ", strip=True)
             return text
         return ""
+    
+    #add async method to return all html
+    async def get_all_html(self):
+        """
+        Returns all HTML content from the page.
+        """
+        if self.soup is None:
+            await self.fetch()
+        if self.soup:
+            for tag in self.soup(["script", "style"]):
+                tag.decompose()
+            return str(self.soup)
+        return ""
+    
+    # get all html without tags, styles, and scripts and classes
+    async def get_all_html_cleaned(self):
+        """
+        Returns all HTML content from the page without tags, styles, scripts, and classes.
+        """
+        if self.soup is None:
+            await self.fetch()
+        if self.soup:
+            for tag in self.soup(["script", "style"]):
+                tag.decompose()
+            # Remove all attributes from tags
+            for tag in self.soup.find_all(True):
+                if "class" in tag.attrs:
+                    del tag.attrs["class"]
+            return str(self.soup)
+        return ""
 
+async def main():
+    scrapper = Scrapper(
+        "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a"
+    )
+    await scrapper.fetch()
+    text = await scrapper.get_all_html()
+    with open("scraped_text.txt", "w", encoding="utf-8") as f:
+        f.write(text)
+    print("Text saved to scraped_text.txt")
 
-# Example usage:
-scrapper = Scrapper(
-    "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a"
-)
-
-print("RUNNED")
-
-scrapper.fetch()
-# print(scrapper.get_links())
-# print(scrapper.get_links())
-print(scrapper.get_all_text())
+if __name__ == "__main__":
+    asyncio.run(main())
