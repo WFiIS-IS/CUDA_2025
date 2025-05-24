@@ -115,19 +115,45 @@ class Scrapper:
             return str(self.soup)
         return ""
 
-    async def main():
-        scrapper = Scrapper(
-            "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a"
-        )
-        await scrapper.fetch()
-        analyzer = ScrapperAnalyzer(scrapper.soup)
-        results = await analyzer.analyze()
-        print("Tags:", results["tags"])
-        print("Sentiment:", results["sentiment"])
-        print("Summary:", results["summary"])
-        print("NER:", results["ner"])
-        print("Topics:", results["topics"])
-        print("Meta:", results["meta"])
+async def main():
+    scrapper_py = Scrapper(
+        "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a"
+    )
+    await scrapper_py.fetch()
+    analyzer = ScrapperAnalyzer(scrapper_py.soup)
+    results = await analyzer.analyze()
+    # print("Tags:", results["tags"])
+    print("Sentiment:", results["sentiment"])
+    # print("Summary:", results["summary"])
+    # print("NER:", results["ner"])
+    # print("Topics:", results["topics"])
+    # print("Meta:", results["meta"])
 
-    if __name__ == "__main__":
-        asyncio.run(main())
+    scrapper_js = Scrapper(
+        "https://medium.com/@adinlewakoyejo/under-the-libuv-hood-how-the-node-js-event-loop-works-158347ec2261"
+    )
+    await scrapper_js.fetch()
+    analyzer = ScrapperAnalyzer(scrapper_js.soup)
+    results = await analyzer.analyze()
+    # print("Tags:", results["tags"])
+    print("Sentiment:", results["sentiment"])
+    # print("Summary:", results["summary"])
+    # print("NER:", results["ner"])
+    # print("Topics:", results["topics"])
+    # print("Meta:", results["meta"])
+
+    scrapper_py2 = Scrapper(
+        "https://medium.com/@francescofranco_39234/object-detection-with-python-and-huggingface-transformers-508794c62456"
+    )
+    await scrapper_py2.fetch()
+    analyzer = ScrapperAnalyzer(scrapper_py2.soup)
+    results = await analyzer.analyze()
+    # print("Tags:", results["tags"])
+    print("Sentiment:", results["sentiment"])
+    # print("Summary:", results["summary"])
+    # print("NER:", results["ner"])
+    # print("Topics:", results["topics"])
+    # print("Meta:", results["meta"])
+
+if __name__ == "__main__":
+    asyncio.run(main())
