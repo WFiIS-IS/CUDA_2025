@@ -3,9 +3,10 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, HTTPException, Response
 from sqlmodel import select
+from sqlalchemy.orm import joinedload
 
 from app.db import DbSession
-from app.models import Collection, CollectionCreate, CollectionPublic
+from app.models import Collection, CollectionCreate, CollectionPublic, LinkEntryCreate, LinkEntryPublic, LinkEntry
 
 router = APIRouter()
 
@@ -14,7 +15,7 @@ router = APIRouter()
 async def read_collections(session: DbSession) -> list[CollectionPublic]:
     """Get all collections."""
     collections = await session.exec(select(Collection))
-    return [CollectionPublic.model_validate(collection) for collection in collections]
+    return list(collections)
 
 
 @router.post("/collections/", response_model=CollectionPublic, tags=["links"])
@@ -26,7 +27,7 @@ async def create_collection(
     session.add(collection)
     await session.commit()
     await session.refresh(collection)
-    return CollectionPublic.model_validate(collection)
+    return collection
 
 
 @router.delete(
@@ -43,3 +44,44 @@ async def delete_collection(collection_id: uuid.UUID, session: DbSession):
     await session.delete(collection)
     await session.commit()
     return Response(status_code=HTTPStatus.NO_CONTENT)
+
+@router.get(
+    "/collections/{collection_id}/links",
+    response_model=list[LinkEntryPublic],
+    tags=["links"]
+)
+async def read_collection_links(collection_id: uuid.UUID, session: DbSession):
+    collection = await session.get(Collection, collection_id)
+    if not collection:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Collection with id "{collection_id}" not found',
+        )
+    links = await session.exec(
+        select(LinkEntry).where(
+            LinkEntry.collection_id==collection.id
+        )
+    )
+    return list(links)
+
+@router.post(
+    "/collections/{collection_id}/links",
+    response_model=LinkEntryPublic,
+    tags=["links"]
+)
+async def create_link_entry(
+    collection_id: uuid.UUID, session: DbSession, body: LinkEntryCreate
+):
+    collection = await session.get(Collection, collection_id)
+    if not collection:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Collection with id "{collection_id}" not found'
+        )
+    link_entry = LinkEntry.model_validate(body, update={
+        "collection_id": collection.id
+    })
+    session.add(link_entry)
+    await session.commit()
+    await session.refresh(link_entry)
+    return LinkEntryPublic.model_validate(link_entry)
