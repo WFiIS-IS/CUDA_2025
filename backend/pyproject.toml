@@ -9,6 +9,7 @@ dependencies = [
     "asgiref>=3.8.1",
     "asyncpg>=0.30.0",
     "beautifulsoup4>=4.13.4",
+    "bs4>=0.0.2",
     "fastapi[standard]>=0.115.12",
     "httpx>=0.28.1",
     "playwright>=1.52.0",

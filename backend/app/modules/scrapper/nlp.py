@@ -1,10 +1,23 @@
 from transformers import pipeline
 
-# Load sentiment-analysis pipeline (this will download the model on first run)
-sentiment_analyzer = pipeline('sentiment-analysis')
-ner_pipeline = pipeline('ner', grouped_entities=True)
-summarizer = pipeline('summarization')
-topic_modeler = pipeline('zero-shot-classification')
+# Explicitly specify model names for caching and reproducibility
+sentiment_analyzer = pipeline(
+    'sentiment-analysis',
+    model='distilbert/distilbert-base-uncased-finetuned-sst-2-english'
+)
+ner_pipeline = pipeline(
+    'ner',
+    model='dbmdz/bert-large-cased-finetuned-conll03-english',
+    aggregation_strategy="simple"
+)
+summarizer = pipeline(
+    'summarization',
+    model='sshleifer/distilbart-cnn-12-6'
+)
+topic_modeler = pipeline(
+    'zero-shot-classification',
+    model='facebook/bart-large-mnli'
+)
 
 def analyze_sentiment(text: str):
     """
