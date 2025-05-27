@@ -1,27 +1,11 @@
-import { Link } from '@tanstack/react-router';
+import { Link } from "@tanstack/react-router";
 
 export default function Header() {
   return (
-    <header className="flex justify-between gap-2 bg-white p-2 text-black">
+    <header className="flex justify-between gap-2 bg-slate-800 p-2 text-slate-50">
       <nav className="flex flex-row">
         <div className="px-2 font-bold">
           <Link to="/">Home</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/tanstack-query">TanStack Query</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/form/simple">Simple Form</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/form/address">Address Form</Link>
-        </div>
-
-        <div className="px-2 font-bold">
-          <Link to="/demo/store">Store</Link>
         </div>
       </nav>
     </header>

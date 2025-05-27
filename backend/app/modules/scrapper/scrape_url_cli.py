@@ -1,6 +1,8 @@
 import asyncio
-from app.modules.scrapper.scrapper import Scrapper
+
 from app.modules.scrapper.analyzer import ScrapperAnalyzer
+from app.modules.scrapper.scrapper import Scrapper
+
 
 def print_results(results):
     print(f"Sentiment: {results['sentiment']}")
@@ -11,12 +13,15 @@ def print_results(results):
     # print(f"Meta: {results['meta']}")
     # print(f"Tags: {results['tags']}")
 
-async def process_url(url):
+
+async def process_url(url: str):
     scrapper = Scrapper(url)
     await scrapper.fetch()
     analyzer = ScrapperAnalyzer(scrapper.soup)
     results = await analyzer.analyze()
     print_results(results)
+    return reusults
+
 
 def main():
     print("Paste a URL to scrape and analyze sentiment. Type 'exit' or 'quit' to stop.")
@@ -31,6 +36,7 @@ def main():
             asyncio.run(process_url(url))
         except Exception as e:
             print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     main()

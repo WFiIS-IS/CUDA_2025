@@ -3,10 +3,16 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, HTTPException, Response
 from sqlmodel import select
-from sqlalchemy.orm import joinedload
 
 from app.db import DbSession
-from app.models import Collection, CollectionCreate, CollectionPublic, LinkEntryCreate, LinkEntryPublic, LinkEntry
+from app.models import (
+    Collection,
+    CollectionCreate,
+    CollectionPublic,
+    LinkEntry,
+    LinkEntryCreate,
+    LinkEntryPublic,
+)
 
 router = APIRouter()
 
@@ -45,10 +51,11 @@ async def delete_collection(collection_id: uuid.UUID, session: DbSession):
     await session.commit()
     return Response(status_code=HTTPStatus.NO_CONTENT)
 
+
 @router.get(
     "/collections/{collection_id}/links",
     response_model=list[LinkEntryPublic],
-    tags=["links"]
+    tags=["links"],
 )
 async def read_collection_links(collection_id: uuid.UUID, session: DbSession):
     collection = await session.get(Collection, collection_id)
@@ -58,16 +65,13 @@ async def read_collection_links(collection_id: uuid.UUID, session: DbSession):
             detail=f'Collection with id "{collection_id}" not found',
         )
     links = await session.exec(
-        select(LinkEntry).where(
-            LinkEntry.collection_id==collection.id
-        )
+        select(LinkEntry).where(LinkEntry.collection_id == collection.id)
     )
     return list(links)
 
+
 @router.post(
-    "/collections/{collection_id}/links",
-    response_model=LinkEntryPublic,
-    tags=["links"]
+    "/collections/{collection_id}/links", response_model=LinkEntryPublic, tags=["links"]
 )
 async def create_link_entry(
     collection_id: uuid.UUID, session: DbSession, body: LinkEntryCreate
@@ -76,11 +80,9 @@ async def create_link_entry(
     if not collection:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f'Collection with id "{collection_id}" not found'
+            detail=f'Collection with id "{collection_id}" not found',
         )
-    link_entry = LinkEntry.model_validate(body, update={
-        "collection_id": collection.id
-    })
+    link_entry = LinkEntry.model_validate(body, update={"collection_id": collection.id})
     session.add(link_entry)
     await session.commit()
     await session.refresh(link_entry)
