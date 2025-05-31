@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import numpy as np
@@ -15,6 +15,9 @@ from .scrape_url_cli import process_url
 
 # Create the router instance
 router = APIRouter(prefix="/scrapper", tags=["scrapper"])
+
+# Job timeout in seconds (10 minutes)
+JOB_TIMEOUT_SECONDS = 600
 
 
 def convert_numpy_types(obj: Any) -> Any:
@@ -63,8 +66,49 @@ class TaskStatus(BaseModel):
     results: dict[str, Any] | None = None
 
 
+async def cleanup_orphaned_jobs() -> None:
+    """Clean up jobs that are stuck in PROCESSING state from previous app runs."""
+    from sqlalchemy.orm import sessionmaker
+    from sqlmodel.ext.asyncio.session import AsyncSession
+
+    from app.db import async_engine
+
+    async_session = sessionmaker(
+        bind=async_engine, class_=AsyncSession, expire_on_commit=False
+    )
+
+    async with async_session() as session:
+        try:
+            # Find jobs that have been processing for more than timeout duration
+            timeout_threshold = datetime.now(UTC) - timedelta(
+                seconds=JOB_TIMEOUT_SECONDS
+            )
+
+            query = select(Job).where(
+                Job.status == JobStatus.PROCESSING, Job.created_at < timeout_threshold
+            )
+            result = await session.exec(query)
+            orphaned_jobs = result.all()
+
+            for job in orphaned_jobs:
+                print(f"🧹 Cleaning up orphaned job {job.id} for URL: {job.url}")
+                job.status = JobStatus.FAILED
+                job.completed_at = datetime.now(UTC)
+                job.error_message = "Job timed out or app was restarted"
+                session.add(job)
+
+            if orphaned_jobs:
+                await session.commit()
+                print(f"✅ Cleaned up {len(orphaned_jobs)} orphaned jobs")
+            else:
+                print("✅ No orphaned jobs found")
+
+        except Exception as e:
+            print(f"❌ Error cleaning up orphaned jobs: {e}")
+
+
 async def process_scraping_task(task_id: str, url: str) -> None:
-    """Background task to process URL scraping.
+    """Background task to process URL scraping with timeout.
 
     Args:
         task_id (str): Unique identifier for the scraping task.
@@ -96,26 +140,40 @@ async def process_scraping_task(task_id: str, url: str) -> None:
             await session.commit()
             print(f"⏳ Job {task_id} status updated to PROCESSING")
 
-            # Run URL processing in thread pool to avoid blocking event loop
-            print(f"🤖 Running analysis for job {task_id} in thread pool")
-
-            # Execute analysis in thread pool using the reusable process_url function
-            loop = asyncio.get_event_loop()
-            results = await loop.run_in_executor(
-                None, lambda: asyncio.run(process_url(url))
+            # Run URL processing in thread pool with timeout
+            print(
+                f"🤖 Running analysis for job {task_id} in thread pool (timeout: {JOB_TIMEOUT_SECONDS}s)"
             )
-            print(f"🧠 Analysis completed for job {task_id}")
 
-            # Convert numpy types to JSON-serializable types
-            serializable_results = convert_numpy_types(results)
+            # Execute analysis in thread pool with timeout
+            loop = asyncio.get_event_loop()
 
-            # Update job with results
-            job.status = JobStatus.COMPLETED
-            job.completed_at = datetime.now(UTC)
-            job.results = serializable_results
-            session.add(job)
-            await session.commit()
-            print(f"🎉 Job {task_id} completed successfully!")
+            try:
+                results = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: asyncio.run(process_url(url))),
+                    timeout=JOB_TIMEOUT_SECONDS,
+                )
+                print(f"🧠 Analysis completed for job {task_id}")
+
+                # Convert numpy types to JSON-serializable types
+                serializable_results = convert_numpy_types(results)
+
+                # Update job with results
+                job.status = JobStatus.COMPLETED
+                job.completed_at = datetime.now(UTC)
+                job.results = serializable_results
+                session.add(job)
+                await session.commit()
+                print(f"🎉 Job {task_id} completed successfully!")
+
+            except asyncio.TimeoutError:
+                print(f"⏰ Job {task_id} timed out after {JOB_TIMEOUT_SECONDS} seconds")
+                job.status = JobStatus.FAILED
+                job.completed_at = datetime.now(UTC)
+                job.error_message = f"Job timed out after {JOB_TIMEOUT_SECONDS} seconds"
+                session.add(job)
+                await session.commit()
+                print(f"❌ Job {task_id} marked as FAILED due to timeout")
 
         except Exception as e:
             print(f"💥 Job {task_id} failed with error: {str(e)}")
