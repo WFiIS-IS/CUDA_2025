@@ -24,7 +24,11 @@
     },
     "[python]": {
       "editor.defaultFormatter": "charliermarsh.ruff",
-      "editor.indentSize": 4
+      "editor.indentSize": 4,
+      "editor.codeActionsOnSave": {
+        "source.organizeImports.ruff": "explicit",
+        "source.fixAll.ruff": "explicit"
+      }
     },
     "files.watcherExclude": {
       "**/routeTree.gen.ts": true

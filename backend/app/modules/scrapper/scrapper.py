@@ -9,9 +9,6 @@ from playwright_stealth import stealth_async
 from .analyzer import ScrapperAnalyzer
 
 # Add imports for new modules
-from .content_extractor import ContentExtractor
-from .metadata_analyzer import MetadataAnalyzer
-from .nlp import NLPLayer
 
 
 class Scrapper:
@@ -115,6 +112,7 @@ class Scrapper:
             return str(self.soup)
         return ""
 
+
 async def main():
     scrapper_py = Scrapper(
         "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a"
@@ -154,6 +152,7 @@ async def main():
     # print("NER:", results["ner"])
     # print("Topics:", results["topics"])
     # print("Meta:", results["meta"])
+
 
 if __name__ == "__main__":
     asyncio.run(main())

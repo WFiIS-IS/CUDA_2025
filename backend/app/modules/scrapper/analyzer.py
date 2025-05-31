@@ -1,11 +1,13 @@
 from .content_extractor import ContentExtractor
-from .nlp import NLPLayer
 from .metadata_analyzer import MetadataAnalyzer
+from .nlp import NLPLayer
+
 
 class ScrapperAnalyzer:
     """
     Orchestrates the full pipeline: content extraction, NLP, metadata analysis, and tag extraction.
     """
+
     def __init__(self, soup):
         self.soup = soup
 
@@ -27,7 +29,15 @@ class ScrapperAnalyzer:
         if isinstance(topics, dict) and "labels" in topics:
             tags.update(topics["labels"])
         if isinstance(ner, list):
-            tags.update([ent["word"] for ent in ner if ent.get("entity_group") == "PER" or ent.get("entity_group") == "ORG" or ent.get("entity_group") == "LOC"])
+            tags.update(
+                [
+                    ent["word"]
+                    for ent in ner
+                    if ent.get("entity_group") == "PER"
+                    or ent.get("entity_group") == "ORG"
+                    or ent.get("entity_group") == "LOC"
+                ]
+            )
         if meta.get("keywords"):
             tags.update(meta["keywords"].split(","))
         # 5. Return all results
@@ -37,5 +47,5 @@ class ScrapperAnalyzer:
             "topics": topics,
             "ner": ner,
             "meta": meta,
-            "tags": list(tags)
+            "tags": list(tags),
         }
