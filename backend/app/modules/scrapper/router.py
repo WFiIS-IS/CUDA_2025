@@ -1,7 +1,9 @@
+import asyncio
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
+import numpy as np
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, HttpUrl
 from sqlmodel import select
@@ -9,11 +11,35 @@ from sqlmodel import select
 from app.db import DbSession
 from app.models import Job, JobCreate, JobStatus
 
-from .analyzer import ScrapperAnalyzer
-from .scrapper import Scrapper
+from .scrape_url_cli import process_url
 
 # Create the router instance
 router = APIRouter(prefix="/scrapper", tags=["scrapper"])
+
+
+def convert_numpy_types(obj: Any) -> Any:
+    """Convert numpy types to JSON-serializable Python types.
+
+    Args:
+        obj: Any object that might contain numpy types
+
+    Returns:
+        Object with numpy types converted to regular Python types
+    """
+    if isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy_types(item) for item in obj)
+    else:
+        return obj
 
 
 class ScrapingTask(BaseModel):
@@ -59,39 +85,48 @@ async def process_scraping_task(task_id: str, url: str) -> None:
             # Get the job from database
             job = await session.get(Job, uuid.UUID(task_id))
             if not job:
+                print(f"❌ Job {task_id} not found in database")
                 return
+
+            print(f"🚀 Starting job {task_id} for URL: {url}")
 
             # Update job status to processing
             job.status = JobStatus.PROCESSING
             session.add(job)
             await session.commit()
+            print(f"⏳ Job {task_id} status updated to PROCESSING")
 
-            # Initialize scrapper and fetch content
-            scrapper = Scrapper(url)
-            await scrapper.fetch()
+            # Run URL processing in thread pool to avoid blocking event loop
+            print(f"🤖 Running analysis for job {task_id} in thread pool")
 
-            if scrapper.soup is None:
-                raise ValueError("Failed to fetch content from URL")
+            # Execute analysis in thread pool using the reusable process_url function
+            loop = asyncio.get_event_loop()
+            results = await loop.run_in_executor(
+                None, lambda: asyncio.run(process_url(url))
+            )
+            print(f"🧠 Analysis completed for job {task_id}")
 
-            # Run complete analysis
-            analyzer = ScrapperAnalyzer(scrapper.soup)
-            results = await analyzer.analyze()
+            # Convert numpy types to JSON-serializable types
+            serializable_results = convert_numpy_types(results)
 
             # Update job with results
             job.status = JobStatus.COMPLETED
-            job.completed_at = datetime.utcnow()
-            job.results = results
+            job.completed_at = datetime.now(UTC)
+            job.results = serializable_results
             session.add(job)
             await session.commit()
+            print(f"🎉 Job {task_id} completed successfully!")
 
         except Exception as e:
+            print(f"💥 Job {task_id} failed with error: {str(e)}")
             # Update job with error information
             if job:
                 job.status = JobStatus.FAILED
-                job.completed_at = datetime.utcnow()
+                job.completed_at = datetime.now(UTC)
                 job.error_message = str(e)
                 session.add(job)
                 await session.commit()
+                print(f"❌ Job {task_id} marked as FAILED in database")
 
 
 @router.get("/scrape", response_model=ScrapingTask)

@@ -28,7 +28,7 @@ def print_results(results: dict[str, Any]) -> None:
     # print(f"Tags: {results['tags']}")
 
 
-async def process_url(url: str) -> None:
+async def process_url(url: str) -> dict[str, Any]:
     """Process a single URL through the complete analysis pipeline.
 
     This function handles the full scraping and analysis workflow for a given URL,
@@ -36,6 +36,10 @@ async def process_url(url: str) -> None:
 
     Args:
         url (str): The URL to scrape and analyze. Must be a valid HTTP/HTTPS URL.
+
+    Returns:
+        dict[str, Any]: Analysis results from ScrapperAnalyzer containing
+                       sentiment, summary, NER, topics, meta, and tags data.
 
     Raises:
         ValueError: If the scrapper fails to fetch content from the URL.
@@ -47,7 +51,7 @@ async def process_url(url: str) -> None:
         2. Fetch and parse web content using Playwright
         3. Verify content was successfully retrieved
         4. Run complete analysis pipeline (NLP, metadata, content extraction)
-        5. Display formatted results
+        5. Return structured results for further processing
     """
     scrapper = Scrapper(url)
     await scrapper.fetch()
@@ -58,7 +62,7 @@ async def process_url(url: str) -> None:
 
     analyzer = ScrapperAnalyzer(scrapper.soup)
     results = await analyzer.analyze()
-    print_results(results)
+    return results
 
 
 def main() -> None:
@@ -91,7 +95,8 @@ def main() -> None:
         if not url:
             continue
         try:
-            asyncio.run(process_url(url))
+            results = asyncio.run(process_url(url))
+            print_results(results)
         except Exception as e:
             print(f"Error: {e}")
 
