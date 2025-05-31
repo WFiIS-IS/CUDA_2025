@@ -12,18 +12,50 @@ from .analyzer import ScrapperAnalyzer
 
 
 class Scrapper:
-    """
-    An asynchronous web scrapper that uses Playwright to fetch and parse HTML content from a given URL, supporting JavaScript-rendered pages.
-    Uses extra stealth by applying playwright-stealth plugin and modifying browser context and user agent.
+    """An asynchronous web scrapper with AI-powered content analysis.
+
+    This class provides comprehensive web scraping capabilities using Playwright
+    for JavaScript-rendered pages and BeautifulSoup for HTML parsing. It includes
+    stealth features to avoid bot detection and supports full content analysis.
+
+    Attributes:
+        url (str): The target URL to scrape.
+        soup (Optional[BeautifulSoup]): Parsed HTML content after fetching.
+
+    Example:
+        ```python
+        scrapper = Scrapper("https://example.com")
+        await scrapper.fetch()
+        title = await scrapper.get_title()
+        text = await scrapper.get_all_text()
+        ```
     """
 
-    def __init__(self, url: str):
-        self.url = url
-        self.soup = None
+    def __init__(self, url: str) -> None:
+        """Initialize the scrapper with a target URL.
 
-    async def fetch(self):
+        Args:
+            url (str): The URL to scrape. Must be a valid HTTP/HTTPS URL.
         """
-        Uses Playwright to launch a headless browser with stealth settings, navigate to the URL, and parse the rendered HTML with BeautifulSoup.
+        self.url = url
+        self.soup: BeautifulSoup | None = None
+
+    async def fetch(self) -> BeautifulSoup:
+        """Fetch and parse web content using Playwright with stealth mode.
+
+        This method launches a headless Chromium browser with stealth settings,
+        navigates to the target URL, waits for the page to fully load, and
+        parses the rendered HTML with BeautifulSoup.
+
+        Returns:
+            BeautifulSoup: Parsed HTML content ready for analysis.
+
+        Raises:
+            Exception: If the page fails to load or parsing fails.
+
+        Note:
+            The method automatically applies stealth mode to avoid bot detection
+            and waits for network idle state to ensure dynamic content is loaded.
         """
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
@@ -43,9 +75,14 @@ class Scrapper:
             await browser.close()
         return self.soup
 
-    async def get_title(self):
-        """
-        Returns the title of the web page.
+    async def get_title(self) -> str | None:
+        """Extract the page title.
+
+        Returns:
+            Optional[str]: The page title if found, None otherwise.
+
+        Note:
+            Automatically calls fetch() if content hasn't been loaded yet.
         """
         if self.soup is None:
             await self.fetch()
@@ -53,19 +90,40 @@ class Scrapper:
             return self.soup.title.string
         return None
 
-    async def get_links(self):
-        """
-        Returns a list of all hyperlinks (anchor tags) on the page.
+    async def get_links(self) -> list[str]:
+        """Extract all hyperlinks from the page.
+
+        Returns:
+            list[str]: List of all href attributes from anchor tags.
+                      Empty list if no links found or fetch fails.
+
+        Note:
+            Automatically calls fetch() if content hasn't been loaded yet.
+            Filters out None values and empty href attributes.
         """
         if self.soup is None:
             await self.fetch()
         if self.soup:
-            return [a.get("href") for a in self.soup.find_all("a", href=True)]
+            return [
+                a.get("href")
+                for a in self.soup.find_all("a", href=True)
+                if a.get("href")
+            ]
         return []
 
-    async def get_all_text(self):
-        """
-        Returns all visible text nodes from the HTML, concatenated as a single string.
+    async def get_all_text(self) -> str:
+        """Extract all visible text content from the page.
+
+        This method removes script, style, and SVG elements before extracting
+        text to ensure only visible content is returned.
+
+        Returns:
+            str: Clean text content with whitespace normalized.
+                 Empty string if no content found or fetch fails.
+
+        Note:
+            Automatically calls fetch() if content hasn't been loaded yet.
+            Text is separated by spaces and stripped of extra whitespace.
         """
         if self.soup is None:
             await self.fetch()
@@ -78,10 +136,16 @@ class Scrapper:
             return text
         return ""
 
-    # add async method to return all html
-    async def get_all_html(self):
-        """
-        Returns all HTML content from the page.
+    async def get_all_html(self) -> str:
+        """Get cleaned HTML content without scripts and styles.
+
+        Returns:
+            str: HTML content with script and style tags removed.
+                 Empty string if no content found or fetch fails.
+
+        Note:
+            Automatically calls fetch() if content hasn't been loaded yet.
+            Useful for further HTML processing while removing dynamic elements.
         """
         if self.soup is None:
             await self.fetch()
@@ -91,10 +155,21 @@ class Scrapper:
             return str(self.soup)
         return ""
 
-    # get all html without tags, styles, and scripts and classes
-    async def get_all_html_cleaned(self):
-        """
-        Returns all HTML content from the page without tags, styles, scripts, and classes.
+    async def get_all_html_cleaned(self) -> str:
+        """Get heavily cleaned HTML without scripts, styles, classes, and media.
+
+        This method removes scripts, styles, SVG elements, pictures, buttons,
+        images, and links. It also strips class and href attributes from
+        remaining elements.
+
+        Returns:
+            str: Heavily cleaned HTML content with minimal formatting.
+                 Empty string if no content found or fetch fails.
+
+        Note:
+            Automatically calls fetch() if content hasn't been loaded yet.
+            Best used when you need pure structural content without styling
+            or interactive elements.
         """
         if self.soup is None:
             await self.fetch()
@@ -113,45 +188,24 @@ class Scrapper:
         return ""
 
 
-async def main():
-    scrapper_py = Scrapper(
-        "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a"
-    )
-    await scrapper_py.fetch()
-    analyzer = ScrapperAnalyzer(scrapper_py.soup)
-    results = await analyzer.analyze()
-    # print("Tags:", results["tags"])
-    print("Sentiment:", results["sentiment"])
-    # print("Summary:", results["summary"])
-    # print("NER:", results["ner"])
-    # print("Topics:", results["topics"])
-    # print("Meta:", results["meta"])
+async def main() -> None:
+    """Demo function showing scrapper usage with multiple URLs.
 
-    scrapper_js = Scrapper(
-        "https://medium.com/@adinlewakoyejo/under-the-libuv-hood-how-the-node-js-event-loop-works-158347ec2261"
-    )
-    await scrapper_js.fetch()
-    analyzer = ScrapperAnalyzer(scrapper_js.soup)
-    results = await analyzer.analyze()
-    # print("Tags:", results["tags"])
-    print("Sentiment:", results["sentiment"])
-    # print("Summary:", results["summary"])
-    # print("NER:", results["ner"])
-    # print("Topics:", results["topics"])
-    # print("Meta:", results["meta"])
+    This function demonstrates how to use the Scrapper class with the
+    ScrapperAnalyzer to perform complete content analysis on multiple URLs.
+    """
+    urls = [
+        "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a",
+        "https://medium.com/@adinlewakoyejo/under-the-libuv-hood-how-the-node-js-event-loop-works-158347ec2261",
+        "https://medium.com/@francescofranco_39234/object-detection-with-python-and-huggingface-transformers-508794c62456",
+    ]
 
-    scrapper_py2 = Scrapper(
-        "https://medium.com/@francescofranco_39234/object-detection-with-python-and-huggingface-transformers-508794c62456"
-    )
-    await scrapper_py2.fetch()
-    analyzer = ScrapperAnalyzer(scrapper_py2.soup)
-    results = await analyzer.analyze()
-    # print("Tags:", results["tags"])
-    print("Sentiment:", results["sentiment"])
-    # print("Summary:", results["summary"])
-    # print("NER:", results["ner"])
-    # print("Topics:", results["topics"])
-    # print("Meta:", results["meta"])
+    for url in urls:
+        scrapper = Scrapper(url)
+        await scrapper.fetch()
+        analyzer = ScrapperAnalyzer(scrapper.soup)
+        results = await analyzer.analyze()
+        print("Sentiment:", results["sentiment"])
 
 
 if __name__ == "__main__":
