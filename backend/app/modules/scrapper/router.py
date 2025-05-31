@@ -154,16 +154,28 @@ async def get_task_status(task_id: str, db: DbSession) -> TaskStatus:
 
 
 @router.get("/tasks", response_model=TaskListResponse)
-async def list_tasks(db: DbSession) -> TaskListResponse:
-    """List all scraping tasks.
+async def list_tasks(
+    db: DbSession,
+    status: JobStatus | None = Query(None, description="Filter tasks by status"),
+) -> TaskListResponse:
+    """List all scraping tasks with optional filtering and sorting.
 
     Args:
         db (DbSession): Database session dependency.
+        status (JobStatus | None): Optional status filter (PENDING, PROCESSING, COMPLETED, FAILED).
+        sort_desc (bool): Sort by created_at descending (newest first) if True, ascending if False.
 
     Returns:
-        TaskListResponse: List of all tasks with summary info.
+        TaskListResponse: List of tasks matching criteria with summary info.
     """
+    # Build query with optional status filter
     query = select(Job)
+
+    if status is not None:
+        query = query.where(Job.status == status)
+
+    query = query.order_by(Job.created_at.desc())
+
     result = await db.exec(query)
     tasks = result.all()
 

@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 from transformers.pipelines import pipeline
@@ -16,7 +17,7 @@ summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 topic_modeler = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 
-def analyze_sentiment(text: str) -> Any:
+async def analyze_sentiment(text: str) -> Any:
     """Analyze sentiment of text using HuggingFace Transformers.
 
     This function uses a pre-trained DistilBERT model to classify the sentiment
@@ -38,13 +39,16 @@ def analyze_sentiment(text: str) -> Any:
 
     Example:
         ```python
-        result = analyze_sentiment("This is a great product!")
+        result = await analyze_sentiment("This is a great product!")
         print(f"Sentiment: {result['label']}, Score: {result['score']}")
         ```
     """
     if not text.strip():
         return {"label": "NEUTRAL", "score": 0.0}
-    result = sentiment_analyzer(text[:512])  # Limit to 512 chars for performance
+
+    # Run in thread pool to avoid blocking event loop
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, lambda: sentiment_analyzer(text[:512]))
     return result[0] if result else {"label": "NEUTRAL", "score": 0.0}
 
 
@@ -83,7 +87,7 @@ class NLPLayer:
         """
         self.text = text
 
-    def sentiment(self) -> Any:
+    async def sentiment(self) -> Any:
         """Analyze sentiment of the text content.
 
         Returns:
@@ -94,9 +98,9 @@ class NLPLayer:
             Uses the same analysis function as analyze_sentiment() with
             automatic text truncation to 512 characters for performance.
         """
-        return analyze_sentiment(self.text)
+        return await analyze_sentiment(self.text)
 
-    def ner(self) -> Any:
+    async def ner(self) -> Any:
         """Extract named entities from the text content.
 
         Identifies and classifies named entities in the text including persons (PER),
@@ -127,9 +131,10 @@ class NLPLayer:
             ]
             ```
         """
-        return ner_pipeline(self.text[:512])
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, lambda: ner_pipeline(self.text[:512]))
 
-    def summarize(self) -> Any:
+    async def summarize(self) -> Any:
         """Generate a summary of the text content.
 
         Creates a concise summary of the input text using a fine-tuned BART model
@@ -150,11 +155,15 @@ class NLPLayer:
             [{"summary_text": "This article discusses..."}]
             ```
         """
-        return summarizer(
-            self.text[:1024], max_length=130, min_length=30, do_sample=False
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: summarizer(
+                self.text[:1024], max_length=130, min_length=30, do_sample=False
+            ),
         )
 
-    def topic_model(self, candidate_labels: list[str] | None = None) -> Any:
+    async def topic_model(self, candidate_labels: list[str] | None = None) -> Any:
         """Classify the text content into topic categories.
 
         Uses zero-shot classification to categorize the text into predefined
@@ -196,4 +205,8 @@ class NLPLayer:
                 "politics",
                 "entertainment",
             ]
-        return topic_modeler(self.text[:512], candidate_labels)
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, lambda: topic_modeler(self.text[:512], candidate_labels)
+        )

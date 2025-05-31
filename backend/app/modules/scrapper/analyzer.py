@@ -69,10 +69,10 @@ class ScrapperAnalyzer:
 
         # 2. NLP Layer - AI-powered text analysis
         nlp = NLPLayer(main_text)
-        sentiment: Any = nlp.sentiment()
-        ner: Any = nlp.ner()
-        summary: Any = nlp.summarize()
-        topics: Any = nlp.topic_model()
+        sentiment: Any = await nlp.sentiment()
+        ner: Any = await nlp.ner()
+        summary: Any = await nlp.summarize()
+        topics: Any = await nlp.topic_model()
 
         # 3. Metadata Analyzer - SEO and structured data
         meta: dict[str, Any] = MetadataAnalyzer(self.soup).extract()
