@@ -1,7 +1,66 @@
 import uuid
+from datetime import datetime
+from enum import Enum
 from typing import Optional
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import func
+from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel
+
+
+class JobStatus(str, Enum):
+    """Enumeration of possible job statuses."""
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class JobBase(SQLModel):
+    """Base model for scrapping jobs."""
+
+    url: str = Field(max_length=1024, index=True)
+    status: JobStatus = Field(default=JobStatus.PENDING, index=True)
+    error_message: str | None = Field(default=None, max_length=1024)
+
+
+class JobCreate(JobBase):
+    """Model for creating new jobs."""
+
+    pass
+
+
+class JobUpdate(SQLModel):
+    """Model for updating job information."""
+
+    status: JobStatus | None = None
+    error_message: str | None = None
+    completed_at: datetime | None = None
+    results: dict | None = None
+
+
+class JobPublic(JobBase):
+    """Public model for job information without sensitive data."""
+
+    id: uuid.UUID
+    created_at: datetime
+    completed_at: datetime | None = None
+
+
+class Job(JobBase, table=True):
+    """Database model for scrapping jobs."""
+
+    __tablename__ = "scrapper_job"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )
+    completed_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    results: dict | None = Field(default=None, sa_column=Column(JSON))
 
 
 class TagLinkAssociation(SQLModel, table=True):
