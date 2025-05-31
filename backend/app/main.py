@@ -3,14 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import settings
+from app.modules.scrapper.jobs import cleanup_orphaned_jobs
 from app.routes import api_router
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
-    # Startup - clean up orphaned jobs from previous app runs
-    from app.modules.scrapper.router import cleanup_orphaned_jobs
-
+async def lifespan(app: FastAPI):
     print("🚀 Starting FastAPI application...")
     await cleanup_orphaned_jobs()
 
