@@ -1,10 +1,14 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Optional
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import func
 from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel
+
+# Fixed embedding dimension for vector database
+EMBEDDING_DIMENSION = 1536  # Standard for OpenAI text-embedding-ada-002
 
 
 class JobStatus(str, Enum):
@@ -16,10 +20,18 @@ class JobStatus(str, Enum):
     FAILED = "failed"
 
 
+class JobType(str, Enum):
+    """Enumeration of possible job types."""
+
+    SCRAPPING = "scrapping"
+    EMBEDDING = "embedding"
+
+
 class JobBase(SQLModel):
     """Base model for scrapping jobs."""
 
     url: str = Field(max_length=1024, index=True)
+    type: JobType = Field(index=True)
     status: JobStatus = Field(default=JobStatus.PENDING, index=True)
     error_message: str | None = Field(default=None, max_length=1024)
 
@@ -36,7 +48,6 @@ class JobUpdate(SQLModel):
     status: JobStatus | None = None
     error_message: str | None = None
     completed_at: datetime | None = None
-    results: dict | None = None
 
 
 class JobPublic(JobBase):
@@ -50,17 +61,16 @@ class JobPublic(JobBase):
 class Job(JobBase, table=True):
     """Database model for scrapping jobs."""
 
-    __tablename__ = "scrapper_job"
+    __tablename__ = "job"  # type: ignore
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
     completed_at: datetime | None = Field(
         default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
-    results: dict | None = Field(default=None, sa_column=Column(JSON))
 
 
 class TagLinkAssociation(SQLModel, table=True):
@@ -145,3 +155,119 @@ class Tag(SQLModel, table=True):
     __tablename__ = "tag"  # type: ignore
 
     name: str = Field(max_length=64, primary_key=True)
+
+
+# Independent result tables connected via URL
+
+
+class AnalysisResultBase(SQLModel):
+    """Base model for analysis results."""
+
+    analysis_type: str = Field(max_length=64, index=True)
+    summary: str | None = Field(default=None, max_length=2048)
+    keywords: list[str] | None = Field(default=None, sa_column=Column(JSON))
+    categories: list[str] | None = Field(default=None, sa_column=Column(JSON))
+    sentiment_score: float | None = Field(default=None, ge=-1.0, le=1.0)
+    confidence_score: float | None = Field(default=None, ge=0.0, le=1.0)
+    extra_data: dict | None = Field(default=None, sa_column=Column(JSON))
+
+
+class AnalysisResultCreate(AnalysisResultBase):
+    """Model for creating new analysis results."""
+
+    url: str = Field(max_length=1024)
+
+
+class AnalysisResultUpdate(SQLModel):
+    """Model for updating analysis result information."""
+
+    analysis_type: str | None = Field(default=None, max_length=64)
+    summary: str | None = Field(default=None, max_length=2048)
+    keywords: list[str] | None = None
+    categories: list[str] | None = None
+    sentiment_score: float | None = Field(default=None, ge=-1.0, le=1.0)
+    confidence_score: float | None = Field(default=None, ge=0.0, le=1.0)
+    extra_data: dict | None = None
+
+
+class AnalysisResultPublic(AnalysisResultBase):
+    """Public model for analysis result information."""
+
+    id: uuid.UUID
+    url: str
+    created_at: datetime
+
+
+class AnalysisResult(AnalysisResultBase, table=True):
+    """Database model for analysis results."""
+
+    __tablename__ = "analysis_result"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )
+
+    # Connect to job via URL instead of foreign key
+    url: str = Field(max_length=1024, index=True)
+
+    analysis_type: str = Field(max_length=64, index=True)
+    summary: str | None = Field(default=None, max_length=2048)
+    keywords: list[str] | None = Field(default=None, sa_column=Column(JSON))
+    categories: list[str] | None = Field(default=None, sa_column=Column(JSON))
+    sentiment_score: float | None = Field(default=None, ge=-1.0, le=1.0)
+    confidence_score: float | None = Field(default=None, ge=0.0, le=1.0)
+    extra_data: dict | None = Field(default=None, sa_column=Column(JSON))
+
+
+class EmbeddingResultBase(SQLModel):
+    """Base model for embedding results."""
+
+    text_chunks: list[str] | None = Field(default=None, sa_column=Column(JSON))
+    chunk_metadata: list[dict] | None = Field(default=None, sa_column=Column(JSON))
+    extra_data: dict | None = Field(default=None, sa_column=Column(JSON))
+
+
+class EmbeddingResultCreate(EmbeddingResultBase):
+    """Model for creating new embedding results."""
+
+    url: str = Field(max_length=1024)
+
+
+class EmbeddingResultUpdate(SQLModel):
+    """Model for updating embedding result information."""
+
+    text_chunks: list[str] | None = None
+    chunk_metadata: list[dict] | None = None
+    extra_data: dict | None = None
+
+
+class EmbeddingResultPublic(EmbeddingResultBase):
+    """Public model for embedding result information."""
+
+    id: uuid.UUID
+    url: str
+    created_at: datetime
+
+
+class EmbeddingResult(EmbeddingResultBase, table=True):
+    """Database model for embedding results."""
+
+    __tablename__ = "embedding_result"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )
+
+    # Connect to job via URL instead of foreign key
+    url: str = Field(max_length=1024, index=True)
+
+    # Vector field for pg_vectors
+    embedding: list[float] = Field(sa_column=Column(Vector(EMBEDDING_DIMENSION)))
+
+    text_chunks: list[str] | None = Field(default=None, sa_column=Column(JSON))
+    chunk_metadata: list[dict] | None = Field(default=None, sa_column=Column(JSON))
+    extra_data: dict | None = Field(default=None, sa_column=Column(JSON))
