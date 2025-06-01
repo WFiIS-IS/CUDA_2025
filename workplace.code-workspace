@@ -24,7 +24,11 @@
     },
     "[python]": {
       "editor.defaultFormatter": "charliermarsh.ruff",
-      "editor.indentSize": 4
+      "editor.indentSize": 4,
+      "editor.codeActionsOnSave": {
+        "source.organizeImports.ruff": "explicit",
+        "source.fixAll.ruff": "explicit"
+      }
     },
     "files.watcherExclude": {
       "**/routeTree.gen.ts": true
@@ -41,7 +45,7 @@
     "editor.codeActionsOnSave": {
       "source.organizeImports.biome": "explicit"
     },
-    "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.typeCheckingMode": "basic",
     "files.associations": {
       "*.css": "tailwindcss"
     }
