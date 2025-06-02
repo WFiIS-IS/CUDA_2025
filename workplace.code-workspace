@@ -45,7 +45,7 @@
     "editor.codeActionsOnSave": {
       "source.organizeImports.biome": "explicit"
     },
-    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.typeCheckingMode": "off",
     "files.associations": {
       "*.css": "tailwindcss"
     }
