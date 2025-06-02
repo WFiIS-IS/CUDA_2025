@@ -8,7 +8,11 @@ from app.db import DbSession
 from app.models import AnalysisResult, Job, JobCreate, JobStatus, JobType
 
 from ..jobs.tasks import process_scraping_task
-from .models import AnalysisResultListResponse, AnalysisResultResponse, ScrapingTask
+from .models import (
+    AnalysisResultListResponse,
+    AnalysisResultResponse,
+    ScrapingTask,
+)
 
 # Create the router instance
 router = APIRouter(prefix="/scrapper", tags=["scrapper"])
