@@ -1,56 +1,17 @@
 import uuid
-from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from pydantic import BaseModel, HttpUrl
-from sqlmodel import select
+from pydantic import HttpUrl
+from sqlmodel import desc, select
 
 from app.db import DbSession
-from app.models import Job, JobCreate, JobStatus
+from app.models import AnalysisResult, Job, JobCreate, JobStatus, JobType
 
-from .jobs import process_scraping
+from ..jobs.tasks import process_scraping_task
+from .models import AnalysisResultListResponse, AnalysisResultResponse, ScrapingTask
 
 # Create the router instance
 router = APIRouter(prefix="/scrapper", tags=["scrapper"])
-
-
-class ScrapingTask(BaseModel):
-    """Response model for scraping task creation."""
-
-    task_id: str
-    status: str
-    message: str
-    created_at: str
-
-
-class TaskStatus(BaseModel):
-    """Response model for task status and results."""
-
-    task_id: str
-    status: str
-    url: str
-    created_at: str
-    completed_at: str | None = None
-    error: str | None = None
-    results: dict[str, Any] | None = None
-
-
-class TaskSummary(BaseModel):
-    """Summary model for task list."""
-
-    task_id: str
-    status: str
-    url: str
-    created_at: str
-    completed_at: str | None = None
-    has_results: bool
-
-
-class TaskListResponse(BaseModel):
-    """Response model for task list."""
-
-    tasks: list[TaskSummary]
-    total_tasks: int
 
 
 @router.get("/scrape", response_model=ScrapingTask)
@@ -88,14 +49,14 @@ async def scrape_url(
     if existing_job:
         # Return existing processing job instead of creating new one
         return ScrapingTask(
-            task_id=str(existing_job.id),
+            job_id=str(existing_job.id),
             status=existing_job.status.value,
             message="Job is already processing for this URL",
             created_at=existing_job.created_at.isoformat(),
         )
 
-    # Create new job in database
-    job_create = JobCreate(url=url_str)
+    # Create new job in database with SCRAPPING type
+    job_create = JobCreate(url=url_str, type=JobType.SCRAPPING)
     job = Job.model_validate(job_create)
 
     db.add(job)
@@ -103,126 +64,139 @@ async def scrape_url(
     await db.refresh(job)
 
     # Add background task for processing
-    background_tasks.add_task(process_scraping, str(job.id), url_str)
+    background_tasks.add_task(process_scraping_task, str(job.id), url_str)
 
     return ScrapingTask(
-        task_id=str(job.id),
+        job_id=str(job.id),
         status=job.status.value,
         message="Scraping task submitted successfully",
         created_at=job.created_at.isoformat(),
     )
 
 
-@router.get("/task/{task_id}", response_model=TaskStatus)
-async def get_task_status(task_id: str, db: DbSession) -> TaskStatus:
-    """Get the status and results of a scraping task.
-
-    This endpoint allows checking the progress of a scraping task using
-    the task ID returned from the scrape endpoint.
+@router.get("/analysis-result/{result_id}", response_model=AnalysisResultResponse)
+async def get_analysis_result(result_id: str, db: DbSession) -> AnalysisResultResponse:
+    """Get a specific analysis result by ID.
 
     Args:
-        task_id (str): Unique identifier for the scraping task.
+        result_id (str): Unique identifier for the analysis result.
         db (DbSession): Database session dependency.
 
     Returns:
-        TaskStatus: Complete task information including results if completed.
+        AnalysisResultResponse: Complete analysis result information.
 
     Raises:
-        HTTPException: If the task ID is not found.
+        HTTPException: If the result ID is not found.
 
     Example:
-        GET /scrapper/task/123e4567-e89b-12d3-a456-426614174000
+        GET /scrapper/analysis-result/123e4567-e89b-12d3-a456-426614174000
     """
     try:
-        job_uuid = uuid.UUID(task_id)
+        result_uuid = uuid.UUID(result_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid task ID format")
+        raise HTTPException(status_code=400, detail="Invalid result ID format")
 
-    job = await db.get(Job, job_uuid)
-    if not job:
-        raise HTTPException(status_code=404, detail="Task not found")
+    analysis_result = await db.get(AnalysisResult, result_uuid)
+    if not analysis_result:
+        raise HTTPException(status_code=404, detail="Analysis result not found")
 
-    return TaskStatus(
-        task_id=task_id,
-        status=job.status.value,
-        url=job.url,
-        created_at=job.created_at.isoformat(),
-        completed_at=job.completed_at.isoformat() if job.completed_at else None,
-        error=job.error_message,
-        results=job.results,
+    return AnalysisResultResponse(
+        id=str(analysis_result.id),
+        url=analysis_result.url,
+        analysis_type=analysis_result.analysis_type,
+        summary=analysis_result.summary,
+        keywords=analysis_result.keywords,
+        categories=analysis_result.categories,
+        sentiment_score=analysis_result.sentiment_score,
+        confidence_score=analysis_result.confidence_score,
+        extra_data=analysis_result.extra_data,
+        created_at=analysis_result.created_at.isoformat(),
     )
 
 
-@router.get("/tasks", response_model=TaskListResponse)
-async def list_tasks(
+@router.get("/analysis-results", response_model=AnalysisResultListResponse)
+async def list_analysis_results(
     db: DbSession,
-    status: JobStatus | None = Query(None, description="Filter tasks by status"),
-) -> TaskListResponse:
-    """List all scraping tasks with optional filtering and sorting.
+    analysis_type: str | None = Query(None, description="Filter by analysis type"),
+    url: str | None = Query(None, description="Filter by URL"),
+    limit: int = Query(
+        50, description="Maximum number of results to return", ge=1, le=100
+    ),
+    offset: int = Query(0, description="Number of results to skip", ge=0),
+) -> AnalysisResultListResponse:
+    """List analysis results with optional filtering and pagination.
 
     Args:
         db (DbSession): Database session dependency.
-        status (JobStatus | None): Optional status filter (PENDING, PROCESSING, COMPLETED, FAILED).
-        sort_desc (bool): Sort by created_at descending (newest first) if True, ascending if False.
+        analysis_type (str | None): Optional analysis type filter.
+        url (str | None): Optional URL filter.
+        limit (int): Maximum number of results to return.
+        offset (int): Number of results to skip for pagination.
 
     Returns:
-        TaskListResponse: List of tasks matching criteria with summary info.
+        AnalysisResultListResponse: List of analysis results matching criteria.
     """
-    # Build query with optional status filter
-    query = select(Job)
+    # Build query with optional filters
+    query = select(AnalysisResult)
 
-    if status is not None:
-        query = query.where(Job.status == status)
+    if analysis_type is not None:
+        query = query.where(AnalysisResult.analysis_type == analysis_type)
 
-    query = query.order_by(Job.created_at.desc())
+    if url is not None:
+        query = query.where(AnalysisResult.url == url)
+
+    query = query.order_by(desc(AnalysisResult.created_at)).offset(offset).limit(limit)
 
     result = await db.exec(query)
-    tasks = result.all()
+    analysis_results = result.all()
 
-    task_summaries = [
-        TaskSummary(
-            task_id=str(task.id),
-            status=task.status.value,
-            url=task.url,
-            created_at=task.created_at.isoformat(),
-            completed_at=task.completed_at.isoformat() if task.completed_at else None,
-            has_results=task.results is not None,
+    # Convert to response format
+    result_responses = []
+    for analysis_result in analysis_results:
+        result_responses.append(
+            AnalysisResultResponse(
+                id=str(analysis_result.id),
+                url=analysis_result.url,
+                analysis_type=analysis_result.analysis_type,
+                summary=analysis_result.summary,
+                keywords=analysis_result.keywords,
+                categories=analysis_result.categories,
+                sentiment_score=analysis_result.sentiment_score,
+                confidence_score=analysis_result.confidence_score,
+                extra_data=analysis_result.extra_data,
+                created_at=analysis_result.created_at.isoformat(),
+            )
         )
-        for task in tasks
-    ]
 
-    return TaskListResponse(tasks=task_summaries, total_tasks=len(tasks))
+    return AnalysisResultListResponse(
+        results=result_responses, total_results=len(analysis_results)
+    )
 
 
-@router.delete("/task/{task_id}")
-async def delete_task(task_id: str, db: DbSession) -> dict[str, str]:
-    """Delete a completed or failed scraping task.
+@router.delete("/analysis-result/{result_id}")
+async def delete_analysis_result(result_id: str, db: DbSession) -> dict[str, str]:
+    """Delete an analysis result.
 
     Args:
-        task_id (str): Unique identifier for the scraping task.
+        result_id (str): Unique identifier for the analysis result.
         db (DbSession): Database session dependency.
 
     Returns:
         Dict[str, str]: Confirmation message.
 
     Raises:
-        HTTPException: If the task ID is not found or task is still processing.
+        HTTPException: If the result ID is not found.
     """
     try:
-        job_uuid = uuid.UUID(task_id)
+        result_uuid = uuid.UUID(result_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid task ID format")
+        raise HTTPException(status_code=400, detail="Invalid result ID format")
 
-    job = await db.get(Job, job_uuid)
-    if not job:
-        raise HTTPException(status_code=404, detail="Task not found")
+    analysis_result = await db.get(AnalysisResult, result_uuid)
+    if not analysis_result:
+        raise HTTPException(status_code=404, detail="Analysis result not found")
 
-    if job.status == JobStatus.PROCESSING:
-        raise HTTPException(
-            status_code=400, detail="Cannot delete task that is still processing"
-        )
-
-    await db.delete(job)
+    await db.delete(analysis_result)
     await db.commit()
 
-    return {"message": f"Task {task_id} deleted successfully"}
+    return {"message": f"Analysis result {result_id} deleted successfully"}
