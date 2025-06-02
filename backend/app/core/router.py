@@ -7,9 +7,11 @@ from sqlmodel import select
 from app.db import DbSession
 from app.models import (
     Collection,
+    LinkEntry,
+)
+from app.schemas import (
     CollectionCreate,
     CollectionPublic,
-    LinkEntry,
     LinkEntryCreate,
     LinkEntryPublic,
 )

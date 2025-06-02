@@ -6,7 +6,8 @@ from pydantic import BaseModel, HttpUrl
 from sqlmodel import select
 
 from app.db import DbSession
-from app.models import Job, JobCreate, JobStatus
+from app.models import Job, JobStatus
+from app.schemas import JobCreate
 
 from .jobs import process_scraping
 

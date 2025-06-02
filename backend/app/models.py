@@ -1,12 +1,13 @@
 import uuid
-from datetime import datetime
-from enum import Enum
+from datetime import datetime, timezone
+from enum import Enum, unique
 from typing import Optional
 
 from sqlalchemy import func
 from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel
 
 
+@unique
 class JobStatus(str, Enum):
     """Enumeration of possible job statuses."""
 
@@ -24,29 +25,6 @@ class JobBase(SQLModel):
     error_message: str | None = Field(default=None, max_length=1024)
 
 
-class JobCreate(JobBase):
-    """Model for creating new jobs."""
-
-    pass
-
-
-class JobUpdate(SQLModel):
-    """Model for updating job information."""
-
-    status: JobStatus | None = None
-    error_message: str | None = None
-    completed_at: datetime | None = None
-    results: dict | None = None
-
-
-class JobPublic(JobBase):
-    """Public model for job information without sensitive data."""
-
-    id: uuid.UUID
-    created_at: datetime
-    completed_at: datetime | None = None
-
-
 class Job(JobBase, table=True):
     """Database model for scrapping jobs."""
 
@@ -54,7 +32,7 @@ class Job(JobBase, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
     completed_at: datetime | None = Field(
@@ -72,20 +50,6 @@ class LinkEntryBase(SQLModel):
     url: str = Field(max_length=1024, index=True)
     title: str | None = Field(default=None, max_length=256)
     description: str | None = Field(default=None, max_length=1024)
-
-
-class LinkEntryCreate(LinkEntryBase):
-    pass
-
-
-class LinkEntryUpdate(LinkEntryBase):
-    url: str | None = Field(default=None, max_length=1024)  # type: ignore
-    title: str | None = Field(default=None, max_length=256)
-    description: str | None = Field(default=None, max_length=1024)
-
-
-class LinkEntryPublic(LinkEntryBase):
-    id: uuid.UUID
 
 
 class LinkEntry(LinkEntryBase, table=True):
@@ -108,18 +72,6 @@ class LinkEntry(LinkEntryBase, table=True):
 
 class CollectionBase(SQLModel):
     name: str = Field(max_length=256, index=True)
-
-
-class CollectionCreate(CollectionBase):
-    pass
-
-
-class CollectionUpdate(CollectionBase):
-    name: str | None = Field(default=None, max_length=256)  # type: ignore
-
-
-class CollectionPublic(CollectionBase):
-    id: uuid.UUID
 
 
 class Collection(CollectionBase, table=True):
