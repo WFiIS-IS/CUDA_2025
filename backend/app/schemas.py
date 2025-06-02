@@ -14,6 +14,8 @@ class JobCreate(BaseModel):
         ..., max_length=1024, description="The URL to scrape for job information."
     )
 
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
 
 class JobSummaryPublic(JobBase):
     """Public model for job information without sensitive data."""
@@ -24,22 +26,23 @@ class JobSummaryPublic(JobBase):
 class JobPublic(JobBase):
     """Public model for job information with all details."""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-
     error: str | None = None
     results: dict[str, Any] | None = None
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class JobListPublic(BaseModel):
     """Public model for a list of jobs."""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
     jobs: list[JobPublic] = Field(default_factory=list)
     total_jobs: int = Field(default=0, ge=0)
 
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
 
 class BookmarkCreate(BookmarkBase):
-    pass
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class BookmarkUpdate(BookmarkBase):
@@ -47,21 +50,30 @@ class BookmarkUpdate(BookmarkBase):
     title: str | None = Field(default=None, max_length=256)
     description: str | None = Field(default=None, max_length=1024)
 
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
 
 class BookmarkPublic(BookmarkBase):
     id: uuid.UUID
+    collection_id: uuid.UUID | None
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class CollectionCreate(CollectionBase):
-    pass
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class CollectionUpdate(CollectionBase):
     name: str | None = Field(default=None, max_length=256)  # type: ignore
 
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
 
 class CollectionPublic(CollectionBase):
     id: uuid.UUID
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 def convert_numpy_types(obj: Any) -> Any:

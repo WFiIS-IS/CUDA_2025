@@ -71,7 +71,7 @@ class Bookmark(BookmarkBase, table=True):
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
-    collection_id: uuid.UUID = Field(foreign_key="collection.id", nullable=True)
+    collection_id: uuid.UUID | None = Field(foreign_key="collection.id", nullable=True)
     collection: "Collection" = Relationship(
         back_populates="bookmarks",
     )

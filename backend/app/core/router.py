@@ -55,27 +55,29 @@ async def delete_collection(collection_id: uuid.UUID, session: DbSession):
 
 
 @router.get(
-    "/collections/{collection_id}/links",
+    "/collections/{collection_id}/bookmarks",
     response_model=list[BookmarkPublic],
     tags=["links"],
 )
-async def read_collection_links(collection_id: uuid.UUID, session: DbSession):
+async def read_collection_bookmarks(collection_id: uuid.UUID, session: DbSession):
     collection = await session.get(Collection, collection_id)
     if not collection:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f'Collection with id "{collection_id}" not found',
         )
-    links = await session.exec(
+    bookmarks = await session.exec(
         select(Bookmark).where(Bookmark.collection_id == collection.id)
     )
-    return list(links)
+    return list(bookmarks)
 
 
 @router.post(
-    "/collections/{collection_id}/links", response_model=BookmarkPublic, tags=["links"]
+    "/collections/{collection_id}/bookmarks",
+    response_model=BookmarkPublic,
+    tags=["links"],
 )
-async def create_link_entry(
+async def create_collection_bookmark(
     collection_id: uuid.UUID, session: DbSession, body: BookmarkCreate
 ):
     collection = await session.get(Collection, collection_id)
@@ -89,3 +91,22 @@ async def create_link_entry(
     await session.commit()
     await session.refresh(link_entry)
     return BookmarkPublic.model_validate(link_entry)
+
+
+@router.get("/bookmarks", response_model=list[BookmarkPublic], tags=["links"])
+async def read_all_bookmarks(session: DbSession):
+    bookmarks = await session.exec(select(Bookmark))
+    return list(bookmarks)
+
+
+@router.post(
+    "/bookmark",
+    response_model=BookmarkPublic,
+    tags=["links"],
+)
+async def create_bookmark(session: DbSession, body: BookmarkCreate):
+    bookmark = Bookmark.model_validate(body, update={"collection_id": None})
+    session.add(bookmark)
+    await session.commit()
+    await session.refresh(bookmark)
+    return BookmarkPublic.model_validate(bookmark)
