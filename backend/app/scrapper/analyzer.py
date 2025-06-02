@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 
 from app.scrapper.content_extractor import ContentExtractor
 from app.scrapper.metadata_analyzer import MetadataAnalyzer
-from app.scrapper.nlp import NLPLayer
 
 
 class ScrapperAnalyzer:
@@ -62,6 +61,8 @@ class ScrapperAnalyzer:
             3. Metadata analysis (SEO, Open Graph, Twitter Cards, Schema.org)
             4. Tag generation from multiple sources
         """
+        from app.scrapper.nlp import NLPLayer
+
         # 1. Content Extraction
         extractor = ContentExtractor(self.soup)
         content: dict[str, Any] = extractor.extract()

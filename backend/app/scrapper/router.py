@@ -1,13 +1,12 @@
 import uuid
-from typing import Any
+from http import HTTPStatus
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from pydantic import BaseModel, HttpUrl
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
 from sqlmodel import select
 
 from app.db import DbSession
 from app.models import Job, JobStatus
-from app.schemas import JobCreate
+from app.schemas import JobCreate, JobListPublic, JobPublic, JobSummaryPublic
 
 from .jobs import process_scraping
 
@@ -15,51 +14,12 @@ from .jobs import process_scraping
 router = APIRouter(prefix="/scrapper", tags=["scrapper"])
 
 
-class ScrapingTask(BaseModel):
-    """Response model for scraping task creation."""
-
-    task_id: str
-    status: str
-    message: str
-    created_at: str
-
-
-class TaskStatus(BaseModel):
-    """Response model for task status and results."""
-
-    task_id: str
-    status: str
-    url: str
-    created_at: str
-    completed_at: str | None = None
-    error: str | None = None
-    results: dict[str, Any] | None = None
-
-
-class TaskSummary(BaseModel):
-    """Summary model for task list."""
-
-    task_id: str
-    status: str
-    url: str
-    created_at: str
-    completed_at: str | None = None
-    has_results: bool
-
-
-class TaskListResponse(BaseModel):
-    """Response model for task list."""
-
-    tasks: list[TaskSummary]
-    total_tasks: int
-
-
-@router.get("/scrape", response_model=ScrapingTask)
+@router.get("/scrape", response_model=JobSummaryPublic)
 async def scrape_url(
     background_tasks: BackgroundTasks,
     db: DbSession,
-    url: HttpUrl = Query(..., description="URL to scrape and analyze"),
-) -> ScrapingTask:
+    job_create: JobCreate,
+) -> JobSummaryPublic:
     """Submit a URL for scraping and analysis.
 
     This endpoint accepts a URL and returns a task ID that can be used to
@@ -77,26 +37,18 @@ async def scrape_url(
     Example:
         GET /scrapper/scrape?url=https://example.com
     """
-    url_str = str(url)
 
     # Check if there's already a processing job for this URL
     existing_query = select(Job).where(
-        Job.url == url_str, Job.status == JobStatus.PROCESSING
+        Job.url == job_create.url, Job.status == JobStatus.PROCESSING
     )
     result = await db.exec(existing_query)
     existing_job = result.first()
 
     if existing_job:
         # Return existing processing job instead of creating new one
-        return ScrapingTask(
-            task_id=str(existing_job.id),
-            status=existing_job.status.value,
-            message="Job is already processing for this URL",
-            created_at=existing_job.created_at.isoformat(),
-        )
-
+        return JobSummaryPublic.model_validate(existing_job)
     # Create new job in database
-    job_create = JobCreate(url=url_str)
     job = Job.model_validate(job_create)
 
     db.add(job)
@@ -104,18 +56,18 @@ async def scrape_url(
     await db.refresh(job)
 
     # Add background task for processing
-    background_tasks.add_task(process_scraping, str(job.id), url_str)
+    background_tasks.add_task(process_scraping, str(job.id), job_create.url)
 
-    return ScrapingTask(
-        task_id=str(job.id),
+    return JobSummaryPublic(
+        id=str(job.id),
         status=job.status.value,
-        message="Scraping task submitted successfully",
         created_at=job.created_at.isoformat(),
+        url=job_create.url,
     )
 
 
-@router.get("/task/{task_id}", response_model=TaskStatus)
-async def get_task_status(task_id: str, db: DbSession) -> TaskStatus:
+@router.get("/task/{task_id}", response_model=JobPublic)
+async def get_task_status(task_id: str, db: DbSession) -> JobPublic:
     """Get the status and results of a scraping task.
 
     This endpoint allows checking the progress of a scraping task using
@@ -143,22 +95,14 @@ async def get_task_status(task_id: str, db: DbSession) -> TaskStatus:
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    return TaskStatus(
-        task_id=task_id,
-        status=job.status.value,
-        url=job.url,
-        created_at=job.created_at.isoformat(),
-        completed_at=job.completed_at.isoformat() if job.completed_at else None,
-        error=job.error_message,
-        results=job.results,
-    )
+    return JobPublic.model_validate(job)
 
 
-@router.get("/tasks", response_model=TaskListResponse)
+@router.get("/tasks", response_model=JobListPublic)
 async def list_tasks(
     db: DbSession,
     status: JobStatus | None = Query(None, description="Filter tasks by status"),
-) -> TaskListResponse:
+) -> JobListPublic:
     """List all scraping tasks with optional filtering and sorting.
 
     Args:
@@ -181,18 +125,11 @@ async def list_tasks(
     tasks = result.all()
 
     task_summaries = [
-        TaskSummary(
-            task_id=str(task.id),
-            status=task.status.value,
-            url=task.url,
-            created_at=task.created_at.isoformat(),
-            completed_at=task.completed_at.isoformat() if task.completed_at else None,
-            has_results=task.results is not None,
-        )
+        JobPublic.model_validate(task)  # Convert each job to public model
         for task in tasks
     ]
 
-    return TaskListResponse(tasks=task_summaries, total_tasks=len(tasks))
+    return JobListPublic(jobs=task_summaries, total_jobs=len(tasks))
 
 
 @router.delete("/task/{task_id}")
@@ -226,4 +163,4 @@ async def delete_task(task_id: str, db: DbSession) -> dict[str, str]:
     await db.delete(job)
     await db.commit()
 
-    return {"message": f"Task {task_id} deleted successfully"}
+    return Response(status_code=HTTPStatus.NO_CONTENT)

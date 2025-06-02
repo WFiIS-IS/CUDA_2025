@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 # Import playwright_stealth for stealth mode
 from playwright_stealth import stealth_async
 
-from .analyzer import ScrapperAnalyzer
+from app.scrapper.analyzer import ScrapperAnalyzer
 
 # Add imports for new modules
 

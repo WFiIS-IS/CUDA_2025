@@ -20,17 +20,9 @@ class JobStatus(str, Enum):
 class JobBase(SQLModel):
     """Base model for scrapping jobs."""
 
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     url: str = Field(max_length=1024, index=True)
     status: JobStatus = Field(default=JobStatus.PENDING, index=True)
-    error_message: str | None = Field(default=None, max_length=1024)
-
-
-class Job(JobBase, table=True):
-    """Database model for scrapping jobs."""
-
-    __tablename__ = "scrapper_job"
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
@@ -38,7 +30,15 @@ class Job(JobBase, table=True):
     completed_at: datetime | None = Field(
         default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
+
+
+class Job(JobBase, table=True):
+    """Database model for scrapping jobs."""
+
+    __tablename__ = "scrapper_job"
+
     results: dict | None = Field(default=None, sa_column=Column(JSON))
+    error_message: str | None = Field(default=None, max_length=1024)
 
 
 class TagLinkAssociation(SQLModel, table=True):
