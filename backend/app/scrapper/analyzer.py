@@ -64,8 +64,7 @@ class ScrapperAnalyzer:
 
         # 1. Content Extraction
         extractor = ContentExtractor(self.soup)
-        content: dict[str, Any] = extractor.extract()
-        main_text: str = content["main_text"]
+        main_text: str = extractor.extract()  # Now returns markdown text
 
         # 2. NLP Layer - AI-powered text analysis
         nlp = NLPLayer(main_text)

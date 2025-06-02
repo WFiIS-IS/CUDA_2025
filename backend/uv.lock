@@ -83,6 +83,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "bs4" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "html-to-markdown" },
     { name = "httpx" },
     { name = "playwright" },
     { name = "playwright-stealth" },
@@ -110,6 +111,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.13.4" },
     { name = "bs4", specifier = ">=0.0.2" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.12" },
+    { name = "html-to-markdown", specifier = ">=1.3.2" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "playwright", specifier = ">=1.52.0" },
     { name = "playwright-stealth", specifier = ">=1.0.6" },
@@ -356,6 +358,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/5b/b2316c7f1076da0582b52ea228f68bea95e243c388440d1dc80297c9d813/hf_xet-1.1.2-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:d9b03c34e13c44893ab6e8fea18ee8d2a6878c15328dd3aabedbdd83ee9f2ed3", size = 5647688, upload-time = "2025-05-16T20:44:31.867Z" },
     { url = "https://files.pythonhosted.org/packages/2c/98/e6995f0fa579929da7795c961f403f4ee84af36c625963f52741d56f242c/hf_xet-1.1.2-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:01b18608955b3d826307d37da8bd38b28a46cd2d9908b3a3655d1363274f941a", size = 5322627, upload-time = "2025-05-16T20:44:33.677Z" },
     { url = "https://files.pythonhosted.org/packages/59/40/8f1d5a44a64d8bf9e3c19576e789f716af54875b46daae65426714e75db1/hf_xet-1.1.2-cp37-abi3-win_amd64.whl", hash = "sha256:3562902c81299b09f3582ddfb324400c6a901a2f3bc854f83556495755f4954c", size = 2739542, upload-time = "2025-05-16T20:44:36.287Z" },
+]
+
+[[package]]
+name = "html-to-markdown"
+version = "1.3.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b7/79/b55a03f723a3d1a1ebd24815f1c41cebf0f9b2fd8e502936b610ce279aa0/html_to_markdown-1.3.2.tar.gz", hash = "sha256:34ccb3806973b833e9babbf9919a7aee63913a41563c8b6ccd58c0afab8458ec", size = 15441, upload-time = "2025-04-24T12:26:41.861Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cf/56/2aae6a2ddc6289b535e75b6836ce124fe57865cc4413b781fd1cd65b69bb/html_to_markdown-1.3.2-py3-none-any.whl", hash = "sha256:cd41a786fee973d28e80b324aef1122e7af1316e242dbb4ed49e757333cd9557", size = 14661, upload-time = "2025-04-24T12:26:40.641Z" },
 ]
 
 [[package]]
