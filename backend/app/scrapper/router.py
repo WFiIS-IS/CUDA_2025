@@ -5,16 +5,16 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
 from sqlmodel import select
 
 from app.db import DbSession
-from app.models import Job, JobStatus
+from app.models import Bookmark, Job, JobStatus
 from app.schemas import JobCreate, JobListPublic, JobPublic, JobSummaryPublic
 
-from .jobs import process_scraping
+from ..core.jobs import process_scraping
 
 # Create the router instance
 router = APIRouter(prefix="/scrapper", tags=["scrapper"])
 
 
-@router.get("/scrape", response_model=JobSummaryPublic)
+@router.post("/scrape", response_model=JobSummaryPublic)
 async def scrape_url(
     background_tasks: BackgroundTasks,
     db: DbSession,
@@ -38,24 +38,30 @@ async def scrape_url(
         GET /scrapper/scrape?url=https://example.com
     """
 
-    # Check if there's already a processing job for this URL
-    existing_query = select(Job).where(
-        Job.url == job_create.url, Job.status == JobStatus.PROCESSING
+    # Check if there is a bookmark for this url
+    existing_bookmark = await db.exec(
+        select(Bookmark).where(Bookmark.url == job_create.url)
     )
-    result = await db.exec(existing_query)
-    existing_job = result.first()
+    bookmark = existing_bookmark.first()
 
-    if existing_job:
-        # Return existing processing job instead of creating new one
-        return JobSummaryPublic.model_validate(existing_job)
-    # Create new job in database
-    job = Job.model_validate(job_create)
+    if not bookmark:
+        bookmark = Bookmark(url=job_create.url)
+        db.add(bookmark)
+        await db.commit()
+        await db.refresh(bookmark)
+
+    existing_job = await db.exec(select(Job).where(Job.bookmark_id == bookmark.id))
+    job = existing_job.first()
+
+    if job and job.status != JobStatus.FAILED:
+        return JobSummaryPublic.model_validate(job)
+
+    job = Job.model_validate(job_create, update={"bookmark_id": bookmark.id})
 
     db.add(job)
     await db.commit()
     await db.refresh(job)
 
-    # Add background task for processing
     background_tasks.add_task(process_scraping, str(job.id), job_create.url)
 
     return JobSummaryPublic(
@@ -63,6 +69,7 @@ async def scrape_url(
         status=job.status.value,
         created_at=job.created_at.isoformat(),
         url=job_create.url,
+        bookmark_id=str(bookmark.id),
     )
 
 

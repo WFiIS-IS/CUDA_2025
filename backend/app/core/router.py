@@ -6,14 +6,14 @@ from sqlmodel import select
 
 from app.db import DbSession
 from app.models import (
+    Bookmark,
     Collection,
-    LinkEntry,
 )
 from app.schemas import (
+    BookmarkCreate,
+    BookmarkPublic,
     CollectionCreate,
     CollectionPublic,
-    LinkEntryCreate,
-    LinkEntryPublic,
 )
 
 router = APIRouter()
@@ -56,7 +56,7 @@ async def delete_collection(collection_id: uuid.UUID, session: DbSession):
 
 @router.get(
     "/collections/{collection_id}/links",
-    response_model=list[LinkEntryPublic],
+    response_model=list[BookmarkPublic],
     tags=["links"],
 )
 async def read_collection_links(collection_id: uuid.UUID, session: DbSession):
@@ -67,16 +67,16 @@ async def read_collection_links(collection_id: uuid.UUID, session: DbSession):
             detail=f'Collection with id "{collection_id}" not found',
         )
     links = await session.exec(
-        select(LinkEntry).where(LinkEntry.collection_id == collection.id)
+        select(Bookmark).where(Bookmark.collection_id == collection.id)
     )
     return list(links)
 
 
 @router.post(
-    "/collections/{collection_id}/links", response_model=LinkEntryPublic, tags=["links"]
+    "/collections/{collection_id}/links", response_model=BookmarkPublic, tags=["links"]
 )
 async def create_link_entry(
-    collection_id: uuid.UUID, session: DbSession, body: LinkEntryCreate
+    collection_id: uuid.UUID, session: DbSession, body: BookmarkCreate
 ):
     collection = await session.get(Collection, collection_id)
     if not collection:
@@ -84,8 +84,8 @@ async def create_link_entry(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f'Collection with id "{collection_id}" not found',
         )
-    link_entry = LinkEntry.model_validate(body, update={"collection_id": collection.id})
+    link_entry = Bookmark.model_validate(body, update={"collection_id": collection.id})
     session.add(link_entry)
     await session.commit()
     await session.refresh(link_entry)
-    return LinkEntryPublic.model_validate(link_entry)
+    return BookmarkPublic.model_validate(link_entry)

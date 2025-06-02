@@ -47,7 +47,6 @@ class ScrapperAnalyzer:
                 - sentiment (dict): Sentiment analysis with label and score
                 - summary (list): Generated text summaries
                 - topics (dict): Topic classification with labels and scores
-                - ner (list): Named entity recognition results
                 - meta (dict): Metadata including SEO tags and structured data
                 - tags (list): Combined tags from all analysis sources
 
@@ -57,11 +56,11 @@ class ScrapperAnalyzer:
         Note:
             The analysis pipeline includes:
             1. Content extraction (text, headers, links, media)
-            2. NLP processing (sentiment, NER, summarization, topics)
+            2. NLP processing (sentiment, summarization, topics)
             3. Metadata analysis (SEO, Open Graph, Twitter Cards, Schema.org)
             4. Tag generation from multiple sources
         """
-        from app.scrapper.nlp import NLPLayer
+        from app.llm import NLPLayer
 
         # 1. Content Extraction
         extractor = ContentExtractor(self.soup)
@@ -71,7 +70,6 @@ class ScrapperAnalyzer:
         # 2. NLP Layer - AI-powered text analysis
         nlp = NLPLayer(main_text)
         sentiment: Any = await nlp.sentiment()
-        ner: Any = await nlp.ner()
         summary: Any = await nlp.summarize()
         topics: Any = await nlp.topic_model()
 
@@ -87,16 +85,6 @@ class ScrapperAnalyzer:
             if isinstance(labels, list):
                 tags.update(str(label) for label in labels)  # type: ignore
 
-        # Extract entity words from NER results
-        if isinstance(ner, list):
-            entity_words = [
-                str(ent.get("word", ""))  # type: ignore
-                for ent in ner  # type: ignore
-                if isinstance(ent, dict)
-                and ent.get("entity_group") in ["PER", "ORG", "LOC"]  # type: ignore
-            ]
-            tags.update(entity_words)
-
         # Extract keywords from metadata
         if meta.get("keywords"):
             keywords_str = str(meta["keywords"])
@@ -108,7 +96,6 @@ class ScrapperAnalyzer:
             "sentiment": sentiment,
             "summary": summary,
             "topics": topics,
-            "ner": ner,
             "meta": meta,
             "tags": list(tags),
         }

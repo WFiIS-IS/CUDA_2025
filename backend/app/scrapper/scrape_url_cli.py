@@ -13,16 +13,15 @@ def print_results(results: dict[str, Any]) -> None:
 
     Args:
         results (dict[str, Any]): Analysis results from ScrapperAnalyzer containing
-                                 sentiment, summary, NER, topics, meta, and tags data.
+                                 sentiment, summary, topics, meta, and tags data.
 
     Note:
         Currently only displays sentiment results. Uncomment other print statements
-        to see additional analysis details including summary, NER, topics, metadata, and tags.
+        to see additional analysis details including summary, topics, metadata, and tags.
     """
     print(f"Sentiment: {results['sentiment']}")
     # Uncomment below to see more details
     # print(f"Summary: {results['summary']}")
-    # print(f"NER: {results['ner']}")
     # print(f"Topics: {results['topics']}")
     # print(f"Meta: {results['meta']}")
     # print(f"Tags: {results['tags']}")
@@ -39,7 +38,7 @@ async def process_url(url: str) -> dict[str, Any]:
 
     Returns:
         dict[str, Any]: Analysis results from ScrapperAnalyzer containing
-                       sentiment, summary, NER, topics, meta, and tags data.
+                       sentiment, summary, topics, meta, and tags data.
 
     Raises:
         ValueError: If the scrapper fails to fetch content from the URL.
