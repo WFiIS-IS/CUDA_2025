@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from app.modules.core.router import router as core_router
-from app.modules.scrapper.router import router as scrapper_router
+from app.core.router import router as core_router
+from app.scrapper.router import router as scrapper_router
 
 api_router = APIRouter()
 

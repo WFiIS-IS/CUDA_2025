@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import settings
-from app.modules.scrapper.jobs import cleanup_orphaned_jobs
 from app.routes import api_router
+from app.scrapper.jobs import cleanup_orphaned_jobs
 
 
 @asynccontextmanager

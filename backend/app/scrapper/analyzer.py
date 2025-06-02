@@ -2,9 +2,9 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
-from .content_extractor import ContentExtractor
-from .metadata_analyzer import MetadataAnalyzer
-from .nlp import NLPLayer
+from app.scrapper.content_extractor import ContentExtractor
+from app.scrapper.metadata_analyzer import MetadataAnalyzer
+from app.scrapper.nlp import NLPLayer
 
 
 class ScrapperAnalyzer:

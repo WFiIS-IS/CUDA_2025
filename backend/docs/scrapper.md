@@ -15,8 +15,8 @@ AI-powered web scraping and content analysis system that extracts, processes, an
 ## Quick Start
 
 ```python
-from app.modules.scrapper.scrapper import Scrapper
-from app.modules.scrapper.analyzer import ScrapperAnalyzer
+from app.scrapper.scrapper import Scrapper
+from app.scrapper.analyzer import ScrapperAnalyzer
 
 # Basic usage
 scrapper = Scrapper("https://example.com")
@@ -50,10 +50,10 @@ Test the scrapper interactively:
 
 ```bash
 # Interactive URL scraper
-uv run python -m app.modules.scrapper.scrape_url_cli
+uv run python -m app.scrapper.scrape_url_cli
 
 # Sentiment analysis tool  
-uv run python -m app.modules.scrapper.sentiment_cli
+uv run python -m app.scrapper.sentiment_cli
 ```
 
 ## Performance Notes

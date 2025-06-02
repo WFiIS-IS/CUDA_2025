@@ -1,4 +1,4 @@
-from app.modules.scrapper.nlp import NLPLayer
+from app.scrapper.nlp import NLPLayer
 
 
 def main() -> None:

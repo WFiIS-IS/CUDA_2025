@@ -1,8 +1,8 @@
 import asyncio
 from typing import Any
 
-from app.modules.scrapper.analyzer import ScrapperAnalyzer
-from app.modules.scrapper.scrapper import Scrapper
+from app.scrapper.analyzer import ScrapperAnalyzer
+from app.scrapper.scrapper import Scrapper
 
 
 def print_results(results: dict[str, Any]) -> None:

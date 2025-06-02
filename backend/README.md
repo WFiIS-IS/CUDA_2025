@@ -32,13 +32,13 @@ AI-powered web scraping and content analysis with machine learning capabilities.
 
 ```bash
 # Interactive CLI tool
-uv run python -m app.modules.scrapper.scrape_url_cli
+uv run python -m app.scrapper.scrape_url_cli
 ```
 
 ```python
 # Programmatic usage
-from app.modules.scrapper.scrapper import Scrapper
-from app.modules.scrapper.analyzer import ScrapperAnalyzer
+from app.scrapper.scrapper import Scrapper
+from app.scrapper.analyzer import ScrapperAnalyzer
 
 scrapper = Scrapper("https://example.com")
 await scrapper.fetch()
