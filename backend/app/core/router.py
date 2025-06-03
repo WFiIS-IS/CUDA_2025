@@ -122,3 +122,17 @@ async def create_bookmark(session: DbSession, body: BookmarkCreate):
     await session.commit()
     await session.refresh(bookmark)
     return BookmarkPublic.model_validate(bookmark)
+
+
+@router.delete("/bookmarks/{bookmark_id}", tags=["links"])
+async def delete_bookmark(bookmark_id: uuid.UUID, session: DbSession):
+    """Delete a bookmark by its ID."""
+    bookmark = await session.get(Bookmark, bookmark_id)
+    if not bookmark:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Bookmark with id "{bookmark_id}" not found',
+        )
+    await session.delete(bookmark)
+    await session.commit()
+    return Response(status_code=HTTPStatus.NO_CONTENT)
