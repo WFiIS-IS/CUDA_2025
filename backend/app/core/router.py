@@ -112,7 +112,7 @@ async def read_all_bookmarks(session: DbSession):
 
 
 @router.post(
-    "/bookmark",
+    "/bookmarks",
     response_model=BookmarkPublic,
     tags=["links"],
 )
