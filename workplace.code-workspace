@@ -22,6 +22,12 @@
     "[javascript]": {
       "editor.defaultFormatter": "biomejs.biome"
     },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
     "[python]": {
       "editor.defaultFormatter": "charliermarsh.ruff",
       "editor.indentSize": 4,

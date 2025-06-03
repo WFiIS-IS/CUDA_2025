@@ -1,4 +1,4 @@
-import type { Collection } from '@/data/types';
+import type { Collection } from '@/data/data-types';
 
 type NestedCollectionLinkItemProps = {
   collectionId: Collection['id'];

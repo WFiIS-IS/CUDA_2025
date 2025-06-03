@@ -2,18 +2,17 @@ import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 
-import * as TanStackQueryProvider from './integrations/tanstack-query/root-provider.tsx';
+import { getAxiosContext } from '@/integrations/axios';
+import { getTanStackQueryContext } from '@/integrations/tanstack-query';
 
-// Import the generated route tree
 import { routeTree } from './routeTree.gen';
+import './main.css';
 
-import './styles.css';
-
-// Create a new router instance
 const router = createRouter({
   routeTree,
   context: {
-    ...TanStackQueryProvider.getContext(),
+    ...getTanStackQueryContext(),
+    ...getAxiosContext(),
   },
   defaultPreload: 'intent',
   scrollRestoration: true,
@@ -21,7 +20,6 @@ const router = createRouter({
   defaultPreloadStaleTime: 0,
 });
 
-// Register the router instance for type safety
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
@@ -34,9 +32,7 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
-      <TanStackQueryProvider.Provider>
-        <RouterProvider router={router} />
-      </TanStackQueryProvider.Provider>
+      <RouterProvider router={router} />
     </StrictMode>,
   );
 }
