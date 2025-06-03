@@ -2,6 +2,7 @@ import uuid
 from http import HTTPStatus
 
 from fastapi import APIRouter, HTTPException, Response
+from sqlalchemy import func
 from sqlmodel import select
 
 from app.db import DbSession
@@ -22,8 +23,17 @@ router = APIRouter()
 @router.get("/collections/", response_model=list[CollectionPublic], tags=["links"])
 async def read_collections(session: DbSession) -> list[CollectionPublic]:
     """Get all collections."""
-    collections = await session.exec(select(Collection))
-    return list(collections)
+    # Additionaly get the number of bookmarks in each collection
+
+    collections = await session.exec(
+        select(Collection, func.count(Bookmark.id).label("bookmarks_count"))
+        .outerjoin(Bookmark, Bookmark.collection_id == Collection.id)
+        .group_by(Collection)
+    )
+    return [
+        CollectionPublic.model_validate(collection, update={"bookmarks_count": count})
+        for collection, count in collections
+    ]
 
 
 @router.post("/collections/", response_model=CollectionPublic, tags=["links"])
@@ -35,7 +45,9 @@ async def create_collection(
     session.add(collection)
     await session.commit()
     await session.refresh(collection)
-    return collection
+    return CollectionPublic.model_computed_fields(
+        collection, update={"bookmarks_count": 0}
+    )
 
 
 @router.delete(

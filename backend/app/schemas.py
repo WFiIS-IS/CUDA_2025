@@ -72,6 +72,7 @@ class CollectionUpdate(CollectionBase):
 
 class CollectionPublic(CollectionBase):
     id: uuid.UUID
+    bookmarks_count: int = Field(ge=0)
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
