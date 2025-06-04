@@ -3,17 +3,21 @@ import { useMemo } from 'react';
 
 import { Separator } from '@/components/ui/Separator';
 import { SidebarTrigger } from '@/components/ui/Sidebar';
-import { cacheKeys } from '@/data/cache-keys';
-import type { Bookmark, Collection } from '@/data/data-types';
-import { useQueryClient } from '@tanstack/react-query';
+import { bookmarksQueryOptions } from '@/data/bookmarks';
+import { collectionsQueryOptions } from '@/data/collections';
+import { useAxios } from '@/integrations/axios';
+import { useQuery } from '@tanstack/react-query';
 
 export function AppHeader() {
   const matchRoute = useMatchRoute();
-  const queryClient = useQueryClient();
+  const axiosClient = useAxios();
+  const { data: collections } = useQuery(collectionsQueryOptions({ axiosClient }).all);
+  const { data: bookmarks } = useQuery(bookmarksQueryOptions({ axiosClient }).all);
+
   const ruleset = useMemo(
     () => [
       {
-        cond: () => matchRoute({ to: '/', fuzzy: false }),
+        cond: () => matchRoute({ to: '/' }),
         getTitle: () => 'Home',
         getSubtitle: () => null,
       },
@@ -21,44 +25,42 @@ export function AppHeader() {
         cond: () => matchRoute({ to: '/bookmarks' }),
         getTitle: () => 'All Bookmarks',
         getSubtitle: () => {
-          const bookmarks = queryClient.getQueryData<Bookmark[]>(cacheKeys.bookmarks.all.queryKey)?.length ?? 0;
-          return `${bookmarks} bookmark${bookmarks > 1 ? 's' : ''}`;
+          const bookmarkCount = bookmarks?.length;
+
+          if (bookmarkCount == null) {
+            return null;
+          }
+
+          return `${bookmarkCount} bookmark${bookmarkCount > 1 ? 's' : ''}`;
         },
       },
       {
         cond: () => matchRoute({ to: '/collection/$collectionId' }),
-        getTitle: () => {
-          const match = matchRoute({ to: '/collection/$collectionId' });
-          if (!match) {
-            throw new Error('Invariant matchRoute');
-          }
-          const { collectionId } = match;
-          const collections = queryClient.getQueryData<Collection[]>(cacheKeys.collections.all.queryKey);
+        getTitle: ({
+          collectionId,
+        }: Exclude<ReturnType<typeof matchRoute<string, '/collection/$collectionId'>>, false>) => {
           const collection = collections?.find((c) => c.id === collectionId);
           return collection?.name ?? 'Collection';
         },
-        getSubtitle: () => {
-          const match = matchRoute({ to: '/collection/$collectionId' });
-          if (!match) {
-            throw new Error('Invariant matchRoute');
-          }
-          const { collectionId } = match;
-          const collections = queryClient.getQueryData<Collection[]>(cacheKeys.collections.all.queryKey);
+        getSubtitle: ({
+          collectionId,
+        }: Exclude<ReturnType<typeof matchRoute<string, '/collection/$collectionId'>>, false>) => {
           const collection = collections?.find((c) => c.id === collectionId);
           const count = collection?.bookmarksCount ?? 0;
           return `${count} bookmark${count > 1 ? 's' : ''}`;
         },
-      },
+      } as const,
     ],
-    [matchRoute, queryClient],
+    [matchRoute, collections, bookmarks?.length],
   );
 
   const rule = ruleset.find((rule) => rule.cond());
   if (!rule) {
     throw new Error('Invariant rule');
   }
-  const title = rule.getTitle();
-  const subtitle = rule.getSubtitle();
+  // Following is correct, but TS is not able to infer the type of the rule.cond()
+  const title = rule.getTitle(rule.cond() as never);
+  const subtitle = rule.getSubtitle(rule.cond() as never);
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
