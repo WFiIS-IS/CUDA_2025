@@ -3,8 +3,9 @@ import { Outlet, createRootRouteWithContext } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import type { AxiosInstance } from 'axios';
 
+import { AppHeader } from '@/components/AppHEader';
 import { AppSidebar } from '@/components/app-sidebar';
-import { SidebarProvider } from '@/components/ui/Sidebar';
+import { SidebarInset, SidebarProvider } from '@/components/ui/Sidebar';
 import { AxiosClientProvider } from '@/integrations/axios';
 import { TanStackLayoutAddition, TanStackQueryProvider } from '@/integrations/tanstack-query';
 
@@ -29,8 +30,15 @@ function RootLayout() {
     <TanStackQueryProvider queryClient={queryClient}>
       <AxiosClientProvider axiosClient={axiosClient}>
         <SidebarProvider>
-          <Outlet />
           <AppSidebar />
+          <SidebarInset>
+            <AppHeader />
+            <main className="flex flex-1 flex-col gap-4 p-4">
+              <SidebarInset>
+                <Outlet />
+              </SidebarInset>
+            </main>
+          </SidebarInset>
           <TanStackRouterDevtools />
           <TanStackLayoutAddition />
         </SidebarProvider>

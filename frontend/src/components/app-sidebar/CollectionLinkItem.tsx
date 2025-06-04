@@ -1,26 +1,36 @@
+import { Link, useMatchRoute } from '@tanstack/react-router';
+
+import { Badge } from '@/components/ui/Badge';
+import { SidebarMenuButton, SidebarMenuItem, SidebarMenuSkeleton } from '@/components/ui/Sidebar';
+
 import type { Collection } from '@/data/data-types';
-
-type NestedCollectionLinkItemProps = {
-  collectionId: Collection['id'];
-  collectionName: Collection['name'];
-};
-
-function NestedCollectionLinkItem({ collectionId, collectionName }: NestedCollectionLinkItemProps) {
-  return null;
-}
-
-type FlatCollectionLinkItemProps = {
-  collectionName: Collection['name'];
-};
-
-function FlatCollectionLinkItem({ collectionName }: FlatCollectionLinkItemProps) {
-  return null;
-}
 
 export type CollectionLinkItemProps = {
   collection: Collection;
 };
 
 export function CollectionLinkItem({ collection }: CollectionLinkItemProps) {
-  return null;
+  const matchRoute = useMatchRoute();
+  const isActive = Boolean(matchRoute({ to: '/collection/$collectionId', params: { collectionId: collection.id } }));
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild className="flex flex-row items-center justify-between" isActive={isActive}>
+        <Link to="/collection/$collectionId" params={{ collectionId: collection.id }}>
+          <span>{collection.name}</span>
+          <Badge variant="outline">{collection.bookmarksCount}</Badge>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
 }
+
+function CollectionLinkItemSkeleton() {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuSkeleton />
+    </SidebarMenuItem>
+  );
+}
+
+CollectionLinkItem.Skeleton = CollectionLinkItemSkeleton;

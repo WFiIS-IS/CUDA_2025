@@ -1,15 +1,13 @@
-import type { ComponentProps } from 'react';
-
 import { SidebarCollections } from '@/components/app-sidebar/SidebarCollections';
 import { AllBookmarks } from '@/components/app-sidebar/menu-items/AllBookmarks';
 import { UnsortedBookmarks } from '@/components/app-sidebar/menu-items/UnsortedBookmarks';
-import { Sidebar, SidebarHeader, SidebarMenu } from '@/components/ui/Sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/Sidebar';
 
 import { AppLogo } from './AppLogo';
 
-export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+export function AppSidebar() {
   return (
-    <Sidebar {...props}>
+    <Sidebar variant="inset">
       <SidebarHeader>
         <SidebarMenu>
           <AppLogo />
@@ -19,7 +17,9 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarCollections />
+      <SidebarContent>
+        <SidebarCollections />
+      </SidebarContent>
     </Sidebar>
   );
 }

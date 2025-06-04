@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const CollectionSchema = z.object({
   name: z.string(),
   id: z.string(),
+  bookmarksCount: z.number(),
 });
 
 export type Collection = z.infer<typeof CollectionSchema>;
