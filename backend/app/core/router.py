@@ -51,7 +51,7 @@ async def create_collection(
 
 
 @router.delete(
-    "/collections/{collection_id}", response_model=CollectionPublic, tags=["links"]
+    "/collections/{collection_id}/", response_model=CollectionPublic, tags=["links"]
 )
 async def delete_collection(collection_id: uuid.UUID, session: DbSession):
     """Delete a collection."""
@@ -67,7 +67,7 @@ async def delete_collection(collection_id: uuid.UUID, session: DbSession):
 
 
 @router.get(
-    "/collections/{collection_id}/bookmarks",
+    "/collections/{collection_id}/bookmarks/",
     response_model=list[BookmarkPublic],
     tags=["links"],
 )
@@ -85,7 +85,7 @@ async def read_collection_bookmarks(collection_id: uuid.UUID, session: DbSession
 
 
 @router.post(
-    "/collections/{collection_id}/bookmarks",
+    "/collections/{collection_id}/bookmarks/",
     response_model=BookmarkPublic,
     tags=["links"],
 )
@@ -105,14 +105,14 @@ async def create_collection_bookmark(
     return BookmarkPublic.model_validate(link_entry)
 
 
-@router.get("/bookmarks", response_model=list[BookmarkPublic], tags=["links"])
+@router.get("/bookmarks/", response_model=list[BookmarkPublic], tags=["links"])
 async def read_all_bookmarks(session: DbSession):
     bookmarks = await session.exec(select(Bookmark))
     return list(bookmarks)
 
 
 @router.post(
-    "/bookmarks",
+    "/bookmarks/",
     response_model=BookmarkPublic,
     tags=["links"],
 )
@@ -124,7 +124,7 @@ async def create_bookmark(session: DbSession, body: BookmarkCreate):
     return BookmarkPublic.model_validate(bookmark)
 
 
-@router.delete("/bookmarks/{bookmark_id}", tags=["links"])
+@router.delete("/bookmarks/{bookmark_id}/", tags=["links"])
 async def delete_bookmark(bookmark_id: uuid.UUID, session: DbSession):
     """Delete a bookmark by its ID."""
     bookmark = await session.get(Bookmark, bookmark_id)
