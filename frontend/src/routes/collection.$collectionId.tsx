@@ -13,8 +13,22 @@ import { useApiClient } from '@/integrations/axios';
 export const Route = createFileRoute('/collection/$collectionId')({
   component: RouteComponent,
   loader: async ({ context: { queryClient, apiClient }, params: { collectionId } }) => {
+    const bookmarks = await queryClient.fetchQuery(
+      bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId }),
+    );
     await Promise.all([
-      queryClient.ensureQueryData(bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId })),
+      ...bookmarks.map((bookmark) =>
+        queryClient.ensureQueryData(bookmarksQueryOptions({ apiClient }).byId({ id: bookmark.id }).tags),
+      ),
+      ...bookmarks.map((bookmark) => {
+        if (bookmark.collectionId) {
+          return queryClient.ensureQueryData(
+            collectionsQueryOptions({ apiClient }).byId({ collectionId: bookmark.collectionId }),
+          );
+        }
+
+        return Promise.resolve();
+      }),
       queryClient.ensureQueryData(collectionsQueryOptions({ apiClient }).byId({ collectionId })),
     ]);
   },

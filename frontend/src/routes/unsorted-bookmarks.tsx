@@ -7,12 +7,27 @@ import { PageWrapper } from '@/components/PageWrapper';
 import { BookmarkCard } from '@/components/bookmark/BookmarkCard';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 import { bookmarksQueryOptions } from '@/data/bookmarks';
+import { collectionsQueryOptions } from '@/data/collections';
 import { useApiClient } from '@/integrations/axios';
 
 export const Route = createFileRoute('/unsorted-bookmarks')({
   component: RouteComponent,
   loader: async ({ context: { apiClient, queryClient } }) => {
-    await queryClient.ensureQueryData(bookmarksQueryOptions({ apiClient }).unsorted);
+    const bookmarks = await queryClient.fetchQuery(bookmarksQueryOptions({ apiClient }).unsorted);
+    await Promise.all([
+      ...bookmarks.map((bookmark) =>
+        queryClient.ensureQueryData(bookmarksQueryOptions({ apiClient }).byId({ id: bookmark.id }).tags),
+      ),
+      ...bookmarks.map((bookmark) => {
+        if (bookmark.collectionId) {
+          return queryClient.ensureQueryData(
+            collectionsQueryOptions({ apiClient }).byId({ collectionId: bookmark.collectionId }),
+          );
+        }
+
+        return Promise.resolve();
+      }),
+    ]);
   },
 });
 
