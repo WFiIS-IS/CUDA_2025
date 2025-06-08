@@ -80,3 +80,29 @@ export async function fetchCollectionById({
 
   return validatedData;
 }
+
+export async function fetchBookmarkTags({ apiClient, bookmarkId }: CommonQueryParams & { bookmarkId: Bookmark['id'] }) {
+  const response = await apiClient.get(`/api/bookmarks/${bookmarkId}/tags/`);
+  const validatedData = z.array(z.string()).parse(response.data);
+
+  return validatedData;
+}
+
+export async function addTagToBookmark({
+  apiClient,
+  bookmarkId,
+  tag,
+}: CommonQueryParams & { bookmarkId: Bookmark['id']; tag: string }) {
+  const response = await apiClient.post(`/api/bookmarks/${bookmarkId}/tags/`, { tag });
+  const validatedData = z.array(z.string()).parse(response.data);
+
+  return validatedData;
+}
+
+export async function removeTagFromBookmark({
+  apiClient,
+  bookmarkId,
+  tag,
+}: CommonQueryParams & { bookmarkId: Bookmark['id']; tag: string }) {
+  await apiClient.delete(`/api/bookmarks/${bookmarkId}/tags/${tag}/`);
+}

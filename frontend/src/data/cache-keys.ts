@@ -5,6 +5,12 @@ export const cacheKeys = createQueryKeyStore({
     all: null,
     byCollectionId: (collectionId: string) => [{ collectionId }],
     unsorted: null,
+    byId: (id: string) => ({
+      queryKey: [{ id }],
+      contextQueries: {
+        tags: null,
+      },
+    }),
   },
   collections: {
     all: null,
