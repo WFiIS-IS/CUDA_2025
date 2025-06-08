@@ -40,7 +40,7 @@ class HuggingFaceLLM:
             result = await loop.run_in_executor(None, lambda: pipeline(truncated_text))
 
             if result and len(result) > 0:
-                return result[0]
+                return result
             else:
                 return {"label": "NEUTRAL", "score": 0.0}
 
@@ -61,16 +61,11 @@ class HuggingFaceLLM:
             pipeline = get_summarization_model()
             result = await loop.run_in_executor(
                 None,
-                lambda: pipeline(
-                    truncated_text,
-                    max_length=max_length,
-                    min_length=min_length,
-                    do_sample=False,
-                ),
+                lambda: pipeline(truncated_text),
             )
 
             if result and len(result) > 0:
-                return result[0]
+                return result
             else:
                 return {"summary_text": ""}
 
@@ -98,9 +93,9 @@ class HuggingFaceLLM:
         loop = asyncio.get_event_loop()
 
         try:
-            pipeline = get_topic_classification_model()
+            pipeline = get_topic_classification_model(candidate_labels)
             result = await loop.run_in_executor(
-                None, lambda: pipeline(truncated_text, candidate_labels)
+                None, lambda: pipeline(truncated_text)
             )
 
             return result
