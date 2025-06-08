@@ -4,6 +4,7 @@ export const cacheKeys = createQueryKeyStore({
   bookmarks: {
     all: null,
     byCollectionId: (collectionId: string) => [{ collectionId }],
+    unsorted: null,
   },
   collections: {
     all: null,

@@ -10,6 +10,10 @@ export const bookmarksQueryOptions = ({ apiClient }: CommonQueryParams) => ({
     ...cacheKeys.bookmarks.all,
     queryFn: () => fetchAllBookmarks({ apiClient }),
   }),
+  unsorted: queryOptions({
+    ...cacheKeys.bookmarks.unsorted,
+    queryFn: () => fetchAllBookmarks({ apiClient, collectionId: null }),
+  }),
   byCollectionId: ({ collectionId }: { collectionId: Collection['id'] }) =>
     queryOptions({
       ...cacheKeys.bookmarks.byCollectionId(collectionId),

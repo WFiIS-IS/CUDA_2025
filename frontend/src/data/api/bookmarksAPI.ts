@@ -10,8 +10,17 @@ import {
   CollectionSchema,
 } from '@/data/data-types';
 
-export async function fetchAllBookmarks({ apiClient }: CommonQueryParams) {
-  const response = await apiClient.get('/api/bookmarks/');
+export async function fetchAllBookmarks({
+  apiClient,
+  collectionId,
+}: CommonQueryParams & { collectionId?: string | null }) {
+  const qs = new URLSearchParams();
+  if (collectionId !== undefined) {
+    // Axios would just skip null values, so we need to stringify it
+    qs.append('collectionId', JSON.stringify(collectionId));
+  }
+
+  const response = await apiClient.get(`/api/bookmarks/?${qs.toString()}`);
   const validatedData = z.array(BookmarkSchema).parse(response.data);
 
   return validatedData;

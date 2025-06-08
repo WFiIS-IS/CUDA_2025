@@ -1,7 +1,8 @@
 import uuid
 from http import HTTPStatus
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlmodel import select
 
@@ -125,9 +126,24 @@ async def create_collection_bookmark(
 
 
 @router.get("/bookmarks/", response_model=list[BookmarkPublic], tags=["links"])
-async def read_all_bookmarks(session: DbSession):
-    bookmarks = await session.exec(select(Bookmark))
-    return list(bookmarks)
+async def read_all_bookmarks(
+    session: DbSession,
+    collection_id: uuid.UUID | None | Literal["null"] = Query(
+        default=None,
+        alias="collectionId",
+    ),
+):
+    if collection_id is None:
+        result = await session.exec(select(Bookmark))
+    elif collection_id == "null":
+        result = await session.exec(
+            select(Bookmark).where(Bookmark.collection_id == None)  # noqa: E711
+        )
+    else:
+        result = await session.exec(
+            select(Bookmark).where(Bookmark.collection_id == collection_id)
+        )
+    return list(result)
 
 
 @router.post(
