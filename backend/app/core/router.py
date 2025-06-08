@@ -36,6 +36,25 @@ async def read_collections(session: DbSession) -> list[CollectionPublic]:
     ]
 
 
+@router.get(
+    "/collections/{collection_id}/", response_model=CollectionPublic, tags=["links"]
+)
+async def read_collection(collection_id: uuid.UUID, session: DbSession):
+    collection = await session.get(Collection, collection_id)
+    if not collection:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Collection with id "{collection_id}" not found',
+        )
+    bookmarks_count = await session.exec(
+        select(func.count(Bookmark.id)).where(Bookmark.collection_id == collection_id)
+    )
+    bookmarks_count = bookmarks_count.first()
+    return CollectionPublic.model_validate(
+        collection, update={"bookmarks_count": bookmarks_count}
+    )
+
+
 @router.post("/collections/", response_model=CollectionPublic, tags=["links"])
 async def create_collection(
     body: CollectionCreate, session: DbSession

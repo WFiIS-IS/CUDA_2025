@@ -1,12 +1,12 @@
 import { CollectionLinkItem } from '@/components/app-sidebar/CollectionLinkItem';
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu } from '@/components/ui/Sidebar';
 import { collectionsQueryOptions } from '@/data/collections';
-import { useAxios } from '@/integrations/axios';
+import { useApiClient } from '@/integrations/axios';
 import { useQuery } from '@tanstack/react-query';
 
 export function SidebarCollections() {
-  const axiosClient = useAxios();
-  const { data: collections, isLoading } = useQuery(collectionsQueryOptions({ axiosClient }).all);
+  const apiClient = useApiClient();
+  const { data: collections, isLoading } = useQuery(collectionsQueryOptions({ apiClient }).all);
 
   return (
     <SidebarGroup>
