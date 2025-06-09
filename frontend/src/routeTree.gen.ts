@@ -11,13 +11,34 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as UnsortedBookmarksImport } from './routes/unsorted-bookmarks'
+import { Route as BookmarksImport } from './routes/bookmarks'
 import { Route as IndexImport } from './routes/index'
+import { Route as CollectionCollectionIdImport } from './routes/collection.$collectionId'
 
 // Create/Update Routes
+
+const UnsortedBookmarksRoute = UnsortedBookmarksImport.update({
+  id: '/unsorted-bookmarks',
+  path: '/unsorted-bookmarks',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const BookmarksRoute = BookmarksImport.update({
+  id: '/bookmarks',
+  path: '/bookmarks',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const CollectionCollectionIdRoute = CollectionCollectionIdImport.update({
+  id: '/collection/$collectionId',
+  path: '/collection/$collectionId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -32,6 +53,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/bookmarks': {
+      id: '/bookmarks'
+      path: '/bookmarks'
+      fullPath: '/bookmarks'
+      preLoaderRoute: typeof BookmarksImport
+      parentRoute: typeof rootRoute
+    }
+    '/unsorted-bookmarks': {
+      id: '/unsorted-bookmarks'
+      path: '/unsorted-bookmarks'
+      fullPath: '/unsorted-bookmarks'
+      preLoaderRoute: typeof UnsortedBookmarksImport
+      parentRoute: typeof rootRoute
+    }
+    '/collection/$collectionId': {
+      id: '/collection/$collectionId'
+      path: '/collection/$collectionId'
+      fullPath: '/collection/$collectionId'
+      preLoaderRoute: typeof CollectionCollectionIdImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -39,32 +81,56 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bookmarks': typeof BookmarksRoute
+  '/unsorted-bookmarks': typeof UnsortedBookmarksRoute
+  '/collection/$collectionId': typeof CollectionCollectionIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bookmarks': typeof BookmarksRoute
+  '/unsorted-bookmarks': typeof UnsortedBookmarksRoute
+  '/collection/$collectionId': typeof CollectionCollectionIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/bookmarks': typeof BookmarksRoute
+  '/unsorted-bookmarks': typeof UnsortedBookmarksRoute
+  '/collection/$collectionId': typeof CollectionCollectionIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/bookmarks'
+    | '/unsorted-bookmarks'
+    | '/collection/$collectionId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/bookmarks' | '/unsorted-bookmarks' | '/collection/$collectionId'
+  id:
+    | '__root__'
+    | '/'
+    | '/bookmarks'
+    | '/unsorted-bookmarks'
+    | '/collection/$collectionId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BookmarksRoute: typeof BookmarksRoute
+  UnsortedBookmarksRoute: typeof UnsortedBookmarksRoute
+  CollectionCollectionIdRoute: typeof CollectionCollectionIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BookmarksRoute: BookmarksRoute,
+  UnsortedBookmarksRoute: UnsortedBookmarksRoute,
+  CollectionCollectionIdRoute: CollectionCollectionIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -77,11 +143,23 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/"
+        "/",
+        "/bookmarks",
+        "/unsorted-bookmarks",
+        "/collection/$collectionId"
       ]
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/bookmarks": {
+      "filePath": "bookmarks.tsx"
+    },
+    "/unsorted-bookmarks": {
+      "filePath": "unsorted-bookmarks.tsx"
+    },
+    "/collection/$collectionId": {
+      "filePath": "collection.$collectionId.tsx"
     }
   }
 }

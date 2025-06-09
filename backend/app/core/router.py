@@ -1,7 +1,8 @@
 import uuid
 from http import HTTPStatus
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlmodel import select
 
@@ -9,12 +10,16 @@ from app.db import DbSession
 from app.models import (
     Bookmark,
     Collection,
+    Tag,
+    TagBookmarkAssociation,
 )
 from app.schemas import (
     BookmarkCreate,
     BookmarkPublic,
     CollectionCreate,
     CollectionPublic,
+    TagCreate,
+    TagPublic,
 )
 
 router = APIRouter()
@@ -34,6 +39,25 @@ async def read_collections(session: DbSession) -> list[CollectionPublic]:
         CollectionPublic.model_validate(collection, update={"bookmarks_count": count})
         for collection, count in collections
     ]
+
+
+@router.get(
+    "/collections/{collection_id}/", response_model=CollectionPublic, tags=["links"]
+)
+async def read_collection(collection_id: uuid.UUID, session: DbSession):
+    collection = await session.get(Collection, collection_id)
+    if not collection:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Collection with id "{collection_id}" not found',
+        )
+    bookmarks_count = await session.exec(
+        select(func.count(Bookmark.id)).where(Bookmark.collection_id == collection_id)
+    )
+    bookmarks_count = bookmarks_count.first()
+    return CollectionPublic.model_validate(
+        collection, update={"bookmarks_count": bookmarks_count}
+    )
 
 
 @router.post("/collections/", response_model=CollectionPublic, tags=["links"])
@@ -106,9 +130,24 @@ async def create_collection_bookmark(
 
 
 @router.get("/bookmarks/", response_model=list[BookmarkPublic], tags=["links"])
-async def read_all_bookmarks(session: DbSession):
-    bookmarks = await session.exec(select(Bookmark))
-    return list(bookmarks)
+async def read_all_bookmarks(
+    session: DbSession,
+    collection_id: uuid.UUID | None | Literal["null"] = Query(
+        default=None,
+        alias="collectionId",
+    ),
+):
+    if collection_id is None:
+        result = await session.exec(select(Bookmark))
+    elif collection_id == "null":
+        result = await session.exec(
+            select(Bookmark).where(Bookmark.collection_id == None)  # noqa: E711
+        )
+    else:
+        result = await session.exec(
+            select(Bookmark).where(Bookmark.collection_id == collection_id)
+        )
+    return list(result)
 
 
 @router.post(
@@ -136,3 +175,142 @@ async def delete_bookmark(bookmark_id: uuid.UUID, session: DbSession):
     await session.delete(bookmark)
     await session.commit()
     return Response(status_code=HTTPStatus.NO_CONTENT)
+
+
+@router.get("/bookmarks/{bookmark_id}/tags/", response_model=list[str], tags=["links"])
+async def get_bookmark_tags(bookmark_id: uuid.UUID, session: DbSession):
+    bookmark = await session.get(Bookmark, bookmark_id)
+    if not bookmark:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Bookmark with id "{bookmark_id}" not found',
+        )
+
+    tag_assocs = await session.exec(
+        select(TagBookmarkAssociation.tag_name).where(
+            TagBookmarkAssociation.bookmark_id == bookmark_id
+        )
+    )
+    return list(tag_assocs)
+
+
+@router.post("/bookmarks/{bookmark_id}/tags/", response_model=list[str], tags=["links"])
+async def add_tag_to_bookmark(
+    bookmark_id: uuid.UUID,
+    tag_create: TagCreate,
+    session: DbSession = None,
+):
+    bookmark = await session.get(Bookmark, bookmark_id)
+    if not bookmark:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Bookmark with id "{bookmark_id}" not found',
+        )
+
+    tag_name = tag_create.tag
+
+    db_tag = await session.get(Tag, tag_name)
+    if not db_tag:
+        db_tag = Tag(name=tag_name)
+        session.add(db_tag)
+        await session.commit()
+        await session.refresh(db_tag)
+
+    assoc = await session.exec(
+        select(TagBookmarkAssociation).where(
+            TagBookmarkAssociation.bookmark_id == bookmark_id,
+            TagBookmarkAssociation.tag_name == tag_name,
+        )
+    )
+    if not assoc.first():
+        session.add(TagBookmarkAssociation(bookmark_id=bookmark_id, tag_name=tag_name))
+        await session.commit()
+
+    tag_assocs = await session.exec(
+        select(TagBookmarkAssociation.tag_name).where(
+            TagBookmarkAssociation.bookmark_id == bookmark_id
+        )
+    )
+    return list(tag_assocs)
+
+
+@router.delete(
+    "/bookmarks/{bookmark_id}/tags/{tag_name}/",
+    response_model=list[str],
+    tags=["links"],
+)
+async def remove_tag_from_bookmark(
+    bookmark_id: uuid.UUID, tag_name: str, session: DbSession
+):
+    bookmark = await session.get(Bookmark, bookmark_id)
+    if not bookmark:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Bookmark with id "{bookmark_id}" not found',
+        )
+
+    assoc = await session.exec(
+        select(TagBookmarkAssociation).where(
+            TagBookmarkAssociation.bookmark_id == bookmark_id,
+            TagBookmarkAssociation.tag_name == tag_name,
+        )
+    )
+    assoc_obj = assoc.first()
+
+    if not assoc_obj:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Tag with name "{tag_name}" not found for bookmark with id "{bookmark_id}"',
+        )
+
+    await session.delete(assoc_obj)
+    await session.commit()
+
+    tag_assocs = await session.exec(
+        select(TagBookmarkAssociation.tag_name).where(
+            TagBookmarkAssociation.bookmark_id == bookmark_id
+        )
+    )
+    return list(tag_assocs)
+
+
+@router.get("/tags/", response_model=list[TagPublic], tags=["links"])
+async def get_all_tags(session: DbSession):
+    """Retrieve all tags with their usage count (number of bookmarks per tag)."""
+    result = await session.exec(
+        select(
+            Tag.name.label("tag_name"),
+            func.count(TagBookmarkAssociation.bookmark_id).label("usage_count"),
+        )
+        .outerjoin(TagBookmarkAssociation, Tag.name == TagBookmarkAssociation.tag_name)
+        .group_by(Tag.name)
+    )
+    tags = [
+        TagPublic.model_validate({"tag_name": tag_name, "usage_count": usage_count})
+        for tag_name, usage_count in result
+    ]
+
+    return tags
+
+
+@router.post("/tags/", response_model=TagPublic, tags=["links"])
+async def create_tag(session: DbSession, body: TagCreate):
+    tag_name = body.tag
+    db_tag = await session.get(Tag, tag_name)
+    if db_tag:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail=f'Tag with name "{tag_name}" already exists',
+        )
+
+    tag = Tag(name=tag_name)
+    session.add(tag)
+    await session.commit()
+    await session.refresh(tag)
+    usage_count = await session.exec(
+        select(func.count(TagBookmarkAssociation.bookmark_id)).where(
+            TagBookmarkAssociation.tag_name == tag.name
+        )
+    )
+    usage_count = usage_count.first()
+    return TagPublic.model_validate({"tag_name": tag.name, "usage_count": usage_count})

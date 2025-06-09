@@ -1,27 +1,13 @@
-import { RouterProvider, createRouter } from '@tanstack/react-router';
+import { RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 
-import * as TanStackQueryProvider from './integrations/tanstack-query/root-provider.tsx';
+import './main.css';
 
-// Import the generated route tree
-import { routeTree } from './routeTree.gen';
+import { createRouter } from './router';
 
-import './styles.css';
+const router = createRouter();
 
-// Create a new router instance
-const router = createRouter({
-  routeTree,
-  context: {
-    ...TanStackQueryProvider.getContext(),
-  },
-  defaultPreload: 'intent',
-  scrollRestoration: true,
-  defaultStructuralSharing: true,
-  defaultPreloadStaleTime: 0,
-});
-
-// Register the router instance for type safety
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
@@ -34,9 +20,7 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
-      <TanStackQueryProvider.Provider>
-        <RouterProvider router={router} />
-      </TanStackQueryProvider.Provider>
+      <RouterProvider router={router} />
     </StrictMode>,
   );
 }

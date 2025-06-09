@@ -2,9 +2,8 @@ import uuid
 from typing import Any
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from pydantic.alias_generators import to_camel
-from sqlmodel import Field
 
 from app.models import BookmarkBase, CollectionBase, JobBase
 
@@ -115,3 +114,20 @@ class AnalysisResults(BaseModel):
     def serialize_fields(self, value: Any) -> Any:
         """Custom serializer to handle numpy types."""
         return convert_numpy_types(value)
+
+
+class TagCreate(BaseModel):
+    tag: str = Field(
+        ...,
+        description="The tag to add to the bookmark.",
+        pattern=r"^[a-z0-9\-_]+$",
+        min_length=1,
+        max_length=64,
+    )
+
+
+class TagPublic(BaseModel):
+    tag_name: str
+    usage_count: int
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

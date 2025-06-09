@@ -22,6 +22,12 @@
     "[javascript]": {
       "editor.defaultFormatter": "biomejs.biome"
     },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
     "[python]": {
       "editor.defaultFormatter": "charliermarsh.ruff",
       "editor.indentSize": 4,
@@ -43,12 +49,15 @@
       "**/routeTree.gen.ts": true
     },
     "editor.codeActionsOnSave": {
-      "source.organizeImports.biome": "explicit"
+      "source.organizeImports.biome": "explicit",
+      "source.fixAll.biome": "explicit"
     },
     "python.analysis.typeCheckingMode": "off",
     "files.associations": {
       "*.css": "tailwindcss"
-    }
+    },
+    "biome.configurationPath": "${workspaceFolder}/frontend/biome.json",
+    "biome.requireConfiguration": true
   },
   "extensions": {
     "recommendations": [

@@ -1,0 +1,21 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Planet base, centered -->
+  <circle cx="90" cy="90" r="45" fill="#3b82f6" stroke="#2563eb" stroke-width="4" />
+  <!-- Bigger Planet Rings, centered and fully within viewBox -->
+  <ellipse cx="90" cy="106" rx="65" ry="17" fill="none" stroke="#38bdf8" stroke-width="4" />
+  <ellipse cx="90" cy="110" rx="52" ry="12" fill="none" stroke="#bae6fd" stroke-width="3" />
+
+  <!-- Pins: -->
+  <!-- Pin 1 (top right) -->
+  <circle cx="124" cy="70" r="6" fill="#f59e42" stroke="#fff" stroke-width="2" />
+  <rect x="122.5" y="75" width="3" height="10" rx="1.5" fill="#f59e42" />
+  <!-- Pin 2 (left) -->
+  <circle cx="65" cy="80" r="6" fill="#34d399" stroke="#fff" stroke-width="2" />
+  <rect x="63.5" y="85" width="3" height="10" rx="1.5" fill="#34d399" />
+  <!-- Pin 3 (bottom) -->
+  <circle cx="92" cy="125" r="6" fill="#e879f9" stroke="#fff" stroke-width="2" />
+  <rect x="90.5" y="130" width="3" height="10" rx="1.5" fill="#e879f9" />
+  <!-- Pin 4 (top left) -->
+  <circle cx="76" cy="59" r="6" fill="#f87171" stroke="#fff" stroke-width="2" />
+  <rect x="74.5" y="64" width="3" height="10" rx="1.5" fill="#f87171" />
+</svg>
