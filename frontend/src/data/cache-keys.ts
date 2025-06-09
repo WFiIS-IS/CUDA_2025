@@ -16,4 +16,7 @@ export const cacheKeys = createQueryKeyStore({
     all: null,
     byId: (id: string) => [id],
   },
+  tags: {
+    all: null,
+  },
 });

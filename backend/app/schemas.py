@@ -124,3 +124,10 @@ class TagCreate(BaseModel):
         min_length=1,
         max_length=64,
     )
+
+
+class TagPublic(BaseModel):
+    tag_name: str
+    usage_count: int
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

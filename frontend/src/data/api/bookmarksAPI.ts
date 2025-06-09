@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 import type { CommonQueryParams } from '@/data/api-types';
 import {
@@ -8,6 +8,7 @@ import {
   type Collection,
   type CollectionCreate,
   CollectionSchema,
+  TagSchema,
 } from '@/data/data-types';
 
 export async function fetchAllBookmarks({
@@ -105,4 +106,11 @@ export async function removeTagFromBookmark({
   tag,
 }: CommonQueryParams & { bookmarkId: Bookmark['id']; tag: string }) {
   await apiClient.delete(`/api/bookmarks/${bookmarkId}/tags/${tag}/`);
+}
+
+export async function fetchAllTags({ apiClient }: CommonQueryParams) {
+  const response = await apiClient.get('/api/tags/');
+  const validatedData = z.array(TagSchema).parse(response.data);
+
+  return validatedData;
 }

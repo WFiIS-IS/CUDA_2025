@@ -5,14 +5,16 @@ import { fetchAllCollections, fetchCollectionById } from '@/data/api/bookmarksAP
 import { cacheKeys } from '@/data/cache-keys';
 import type { Collection } from '@/data/data-types';
 
-export const collectionsQueryOptions = ({ apiClient }: CommonQueryParams) => ({
+export const collectionsQueryOptions = ({ apiClient, enabled = true }: CommonQueryParams) => ({
   all: queryOptions({
     ...cacheKeys.collections.all,
     queryFn: () => fetchAllCollections({ apiClient }),
+    enabled,
   }),
   byId: ({ collectionId }: { collectionId: Collection['id'] }) =>
     queryOptions({
       ...cacheKeys.collections.byId(collectionId),
       queryFn: () => fetchCollectionById({ apiClient, collectionId }),
+      enabled,
     }),
 });

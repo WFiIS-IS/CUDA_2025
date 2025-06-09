@@ -19,6 +19,7 @@ from app.schemas import (
     CollectionCreate,
     CollectionPublic,
     TagCreate,
+    TagPublic,
 )
 
 router = APIRouter()
@@ -271,3 +272,45 @@ async def remove_tag_from_bookmark(
         )
     )
     return list(tag_assocs)
+
+
+@router.get("/tags/", response_model=list[TagPublic], tags=["links"])
+async def get_all_tags(session: DbSession):
+    """Retrieve all tags with their usage count (number of bookmarks per tag)."""
+    result = await session.exec(
+        select(
+            Tag.name.label("tag_name"),
+            func.count(TagBookmarkAssociation.bookmark_id).label("usage_count"),
+        )
+        .outerjoin(TagBookmarkAssociation, Tag.name == TagBookmarkAssociation.tag_name)
+        .group_by(Tag.name)
+    )
+    tags = [
+        TagPublic.model_validate({"tag_name": tag_name, "usage_count": usage_count})
+        for tag_name, usage_count in result
+    ]
+
+    return tags
+
+
+@router.post("/tags/", response_model=TagPublic, tags=["links"])
+async def create_tag(session: DbSession, body: TagCreate):
+    tag_name = body.tag
+    db_tag = await session.get(Tag, tag_name)
+    if db_tag:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail=f'Tag with name "{tag_name}" already exists',
+        )
+
+    tag = Tag(name=tag_name)
+    session.add(tag)
+    await session.commit()
+    await session.refresh(tag)
+    usage_count = await session.exec(
+        select(func.count(TagBookmarkAssociation.bookmark_id)).where(
+            TagBookmarkAssociation.tag_name == tag.name
+        )
+    )
+    usage_count = usage_count.first()
+    return TagPublic.model_validate({"tag_name": tag.name, "usage_count": usage_count})

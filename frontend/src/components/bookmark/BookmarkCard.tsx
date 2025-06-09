@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 
 import { BookmarkCollectionName } from '@/components/bookmark/BookmarkCollectionName';
 import { BookmarkTags } from '@/components/bookmark/BookmarkTags';
+import { editBookmark } from '@/components/edit-drawer/drawer-store';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/DropdownMenu';
@@ -41,11 +42,29 @@ export function BookmarkCard({ url, title, description, collectionId, id }: Book
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(url, '_blank');
+                }}
+              >
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Open Link
               </DropdownMenuItem>
-              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  editBookmark({
+                    id,
+                    url,
+                    title,
+                    description,
+                    collectionId,
+                  });
+                }}
+              >
+                Edit
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
