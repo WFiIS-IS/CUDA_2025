@@ -69,9 +69,7 @@ async def create_collection(
     session.add(collection)
     await session.commit()
     await session.refresh(collection)
-    return CollectionPublic.model_computed_fields(
-        collection, update={"bookmarks_count": 0}
-    )
+    return CollectionPublic.model_validate(collection, update={"bookmarks_count": 0})
 
 
 @router.delete(

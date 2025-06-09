@@ -7,8 +7,9 @@ export type FieldInfoProps = {
 export function FieldInfo({ field }: FieldInfoProps) {
   return (
     <>
-      {field.state.meta.isTouched && !field.state.meta.isValid ? <em>{field.state.meta.errors.join(', ')}</em> : null}
-      {field.state.meta.isValidating ? 'Validating...' : null}
+      {field.state.meta.isTouched && !field.state.meta.isValid ? (
+        <p className="text-destructive text-sm">{field.state.meta.errors.map((error) => error.message).join(', ')}</p>
+      ) : null}
     </>
   );
 }
