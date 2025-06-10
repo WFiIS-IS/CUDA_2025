@@ -1,9 +1,16 @@
-import { queryOptions } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { CommonQueryParams } from '@/data/api-types';
-import { fetchAllBookmarks, fetchBookmarkTags, fetchBookmarksByCollectionId } from '@/data/api/bookmarksAPI';
+import {
+  createBookmark,
+  fetchAllBookmarks,
+  fetchBookmarkTags,
+  fetchBookmarksByCollectionId,
+} from '@/data/api/bookmarksAPI';
 import { cacheKeys } from '@/data/cache-keys';
-import type { Bookmark, Collection } from '@/data/data-types';
+import { collectionsQueryOptions } from '@/data/collections';
+import type { Bookmark, BookmarkCreate, Collection } from '@/data/data-types';
+import { useApiClient } from '@/integrations/axios';
 
 export const bookmarksQueryOptions = ({ apiClient, enabled = true }: CommonQueryParams) => ({
   all: queryOptions({
@@ -30,3 +37,23 @@ export const bookmarksQueryOptions = ({ apiClient, enabled = true }: CommonQuery
     }),
   }),
 });
+
+export function useCreateBookmark() {
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (createData: BookmarkCreate) => {
+      await createBookmark({ apiClient, createData });
+    },
+    onSettled: (_, __, { collectionId }) => {
+      queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).all);
+      if (collectionId) {
+        queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId }));
+      } else {
+        queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).unsorted);
+      }
+      queryClient.invalidateQueries(collectionsQueryOptions({ apiClient }).all);
+    },
+  });
+}

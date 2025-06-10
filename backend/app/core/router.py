@@ -154,7 +154,15 @@ async def read_all_bookmarks(
     tags=["links"],
 )
 async def create_bookmark(session: DbSession, body: BookmarkCreate):
-    bookmark = Bookmark.model_validate(body, update={"collection_id": None})
+    collection_Id = body.collection_id
+    if collection_Id:
+        collection = await session.get(Collection, collection_Id)
+        if not collection:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail=f'Collection with id "{collection_Id}" not found',
+            )
+    bookmark = Bookmark.model_validate(body, update={"collection_id": collection_Id})
     session.add(bookmark)
     await session.commit()
     await session.refresh(bookmark)

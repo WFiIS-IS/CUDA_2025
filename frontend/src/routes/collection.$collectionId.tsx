@@ -59,7 +59,7 @@ function RouteComponent() {
   }, [bookmarks]);
 
   return (
-    <PageWrapper header={<AppHeader title={collection.name} subtitle={subtitle} />}>
+    <PageWrapper header={<AppHeader title={collection.name} subtitle={subtitle} collectionId={collectionId} />}>
       <ScrollArea className="flex-1">
         <div className="p-6">
           {bookmarks.length === 0 ? (

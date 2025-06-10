@@ -42,6 +42,7 @@ class JobListPublic(BaseModel):
 
 class BookmarkCreate(BookmarkBase):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    collection_id: uuid.UUID | None = Field(default=None)
 
 
 class BookmarkUpdate(BookmarkBase):
