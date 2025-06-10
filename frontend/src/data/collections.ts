@@ -1,7 +1,8 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { CommonQueryParams } from '@/data/api-types';
-import { createCollection, fetchAllCollections, fetchCollectionById } from '@/data/api/bookmarksAPI';
+import { createCollection, deleteCollection, fetchAllCollections, fetchCollectionById } from '@/data/api/bookmarksAPI';
+import { bookmarksQueryOptions } from '@/data/bookmarks';
 import { cacheKeys } from '@/data/cache-keys';
 import type { Collection, CollectionCreate } from '@/data/data-types';
 import { useApiClient } from '@/integrations/axios';
@@ -25,9 +26,26 @@ export function useCreateCollection() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (createData: CollectionCreate) => createCollection({ apiClient, createData }),
+    mutationFn: async (createData: CollectionCreate) => {
+      await createCollection({ apiClient, createData });
+    },
     onSettled: () => {
       queryClient.invalidateQueries(collectionsQueryOptions({ apiClient }).all);
+    },
+  });
+}
+
+export function useDeleteCollection() {
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (collectionId: Collection['id']) => {
+      await deleteCollection({ apiClient, collectionId });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(collectionsQueryOptions({ apiClient }).all);
+      queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).all);
     },
   });
 }

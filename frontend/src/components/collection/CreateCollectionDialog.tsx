@@ -51,7 +51,6 @@ export function CreateCollectionDialog({ children }: CreateCollectionDialogProps
 
   const handleSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
-      console.log('SUBMIT');
       e.preventDefault();
       e.stopPropagation();
       form.handleSubmit();
