@@ -52,7 +52,7 @@ export async function createCollection({
 }
 
 export async function deleteBookmark({ apiClient, bookmarkId }: CommonQueryParams & { bookmarkId: Bookmark['id'] }) {
-  await apiClient.delete(`bookmarks/${bookmarkId}/`);
+  await apiClient.delete(`/api/bookmarks/${bookmarkId}/`);
 }
 
 export async function deleteCollection({

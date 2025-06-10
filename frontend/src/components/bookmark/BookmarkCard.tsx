@@ -1,13 +1,25 @@
-import { ExternalLink, MoreHorizontal } from 'lucide-react';
-import { Suspense } from 'react';
+import { ExternalLink, MoreHorizontal, Pencil, Trash } from 'lucide-react';
+import { Suspense, useState } from 'react';
 
 import { BookmarkCollectionName } from '@/components/bookmark/BookmarkCollectionName';
 import { BookmarkTags } from '@/components/bookmark/BookmarkTags';
 import { editBookmark } from '@/components/edit-drawer/drawer-store';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/AlertDialog';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/DropdownMenu';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useDeleteBookmark } from '@/data/bookmarks';
 import type { Bookmark } from '@/data/data-types';
 import { cn } from '@/lib/styles';
 
@@ -25,6 +37,10 @@ export type BookmarkCardProps = {
 };
 
 export function BookmarkCard({ url, title, description, collectionId, id }: BookmarkCardProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { mutate: deleteBookmark } = useDeleteBookmark();
+
   return (
     <Card className="group h-[200px] cursor-pointer transition-all hover:shadow-md">
       <CardHeader className="pb-2">
@@ -34,8 +50,7 @@ export function BookmarkCard({ url, title, description, collectionId, id }: Book
               {title ?? formatUrl(url)}
             </CardTitle>
           </div>
-
-          <DropdownMenu>
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100">
                 <MoreHorizontal className="h-4 w-4" />
@@ -51,6 +66,7 @@ export function BookmarkCard({ url, title, description, collectionId, id }: Book
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Open Link
               </DropdownMenuItem>
+
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
@@ -63,8 +79,43 @@ export function BookmarkCard({ url, title, description, collectionId, id }: Book
                   });
                 }}
               >
+                <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
+              <AlertDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setDropdownOpen(false);
+                  }
+                  setIsDeleteDialogOpen(open);
+                }}
+              >
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                    <Trash className="mr-2 h-4 w-4 text-destructive" />
+                    Delete
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to delete this bookmark?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the bookmark.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        deleteBookmark(id);
+                      }}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

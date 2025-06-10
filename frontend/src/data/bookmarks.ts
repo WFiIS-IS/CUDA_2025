@@ -3,6 +3,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type { CommonQueryParams } from '@/data/api-types';
 import {
   createBookmark,
+  deleteBookmark,
   fetchAllBookmarks,
   fetchBookmarkTags,
   fetchBookmarksByCollectionId,
@@ -54,6 +55,25 @@ export function useCreateBookmark() {
         queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).unsorted);
       }
       queryClient.invalidateQueries(collectionsQueryOptions({ apiClient }).all);
+    },
+  });
+}
+
+export function useDeleteBookmark() {
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (bookmarkId: Bookmark['id']) => {
+      await deleteBookmark({ bookmarkId, apiClient });
+    },
+    onSettled: (_, __) => {
+      queryClient.invalidateQueries({
+        queryKey: cacheKeys.collections._def,
+      });
+      queryClient.invalidateQueries({
+        queryKey: cacheKeys.bookmarks._def,
+      });
     },
   });
 }
