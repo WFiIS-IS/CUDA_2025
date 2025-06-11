@@ -21,10 +21,10 @@ def print_results(results: dict[str, Any]) -> None:
     """
     print(f"Sentiment: {results['sentiment']}")
     # Uncomment below to see more details
-    # print(f"Summary: {results['summary']}")
-    # print(f"Topics: {results['topics']}")
-    # print(f"Meta: {results['meta']}")
-    # print(f"Tags: {results['tags']}")
+    print(f"Summary: {results['summary']}")
+    print(f"Topics: {results['topics']}")
+    print(f"Meta: {results['meta']}")
+    print(f"Tags: {results['tags']}")
 
 
 async def process_url(url: str) -> dict[str, Any]:
