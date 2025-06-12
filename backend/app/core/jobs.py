@@ -9,7 +9,7 @@ from sqlmodel import select
 
 from app.db import get_async_session
 from app.llm.nlp import NLPLayer
-from app.models import Bookmark, Collection, Job, JobStatus
+from app.models import Bookmark, BookmarkAISuggestion, Collection, Job, JobStatus
 from app.schemas import AnalysisResults
 
 from app.scrapper.content_extractor import ContentExtractor
@@ -51,9 +51,6 @@ async def cleanup_orphaned_jobs() -> None:
         break  # Only use first session from generator
 
 
-
-
-
 async def process_url(task_id: str, url: str) -> None:
     """Background task to process URL scraping with timeout.
 
@@ -85,7 +82,7 @@ async def process_url(task_id: str, url: str) -> None:
             try:
                 collections = await session.exec(select(Collection))
                 collections = collections.all()
-                
+
                 results = await asyncio.wait_for(
                     _process_url(url, collections), timeout=JOB_TIMEOUT_SECONDS
                 )
@@ -102,26 +99,34 @@ async def process_url(task_id: str, url: str) -> None:
                 if not bookmark:
                     print(f"❌ Bookmark {job.bookmark_id} not found in database")
                     return
-                
-                bookmark.title = analysis_results.title
-                bookmark.description = analysis_results.summary
 
-                collection = await session.exec(select(Collection).where(Collection.name == analysis_results.collection))
+                collection = await session.exec(
+                    select(Collection).where(
+                        Collection.name == analysis_results.collection
+                    )
+                )
                 collection = collection.first()
 
                 if not collection:
                     print(f"🔍 Creating new collection: {analysis_results.collection}")
                     collection = Collection(name=analysis_results.collection)
-                    
+
                     session.add(collection)
                     await session.commit()
                     await session.refresh(collection)
 
                 bookmark.collection_id = collection.id
+                ai_suggestion = BookmarkAISuggestion(
+                    title=analysis_results.title,
+                    description=analysis_results.summary,
+                    bookmark_id=job.bookmark_id,
+                )
+
+                session.add(ai_suggestion)
                 session.add(bookmark)
                 await session.commit()
+                await session.refresh(ai_suggestion)
                 await session.refresh(bookmark)
-                
 
                 # Update job with results
                 job.status = JobStatus.COMPLETED
@@ -151,7 +156,6 @@ async def process_url(task_id: str, url: str) -> None:
                 await session.commit()
                 print(f"❌ Job {task_id} marked as FAILED in database")
         break  # Only use first session from generator
-
 
 
 async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any]:
@@ -185,7 +189,7 @@ async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any
     # Ensure soup is not None after fetch
     if scrapper.soup is None:
         raise ValueError("Failed to fetch content from URL")
-    
+
     content_extractor = ContentExtractor(scrapper.soup)
     content = content_extractor.extract()
 
@@ -204,7 +208,7 @@ async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any
         "summary": summary,
         "collection": collection,
         "title": title,
-        "tags": list(tags)
+        "tags": list(tags),
     }
 
 

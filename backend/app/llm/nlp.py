@@ -51,7 +51,7 @@ class NLPLayer:
             return {"label": "NEUTRAL", "score": 0.0}
 
     async def summarize(
-        self,  max_length: int = 130, min_length: int = 30
+        self, max_length: int = 130, min_length: int = 30
     ) -> dict[str, Any]:
         """Generate text summary using HuggingFace DistilBART model."""
         # Use longer text limit for summarization
@@ -87,16 +87,13 @@ class NLPLayer:
         loop = asyncio.get_event_loop()
 
         pipeline = get_collection_model(candidate_topics)
-        result = await loop.run_in_executor(
-            None, lambda: pipeline(truncated_text)
-        )
+        result = await loop.run_in_executor(None, lambda: pipeline(truncated_text))
 
         return result
 
-
     async def title(self) -> str:
         """Generate a title for the given text."""
-        
+
         truncated_text = self.text[:1024]
 
         loop = asyncio.get_event_loop()
@@ -108,4 +105,3 @@ class NLPLayer:
         )
 
         return result
-

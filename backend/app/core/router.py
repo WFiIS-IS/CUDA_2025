@@ -329,7 +329,6 @@ async def create_tag(session: DbSession, body: TagCreate):
     return TagPublic.model_validate({"tag_name": tag.name, "usage_count": usage_count})
 
 
-
 @router.post("/process_url", response_model=JobSummaryPublic, tags=["processing"])
 async def process_url_endpoint(
     background_tasks: BackgroundTasks,

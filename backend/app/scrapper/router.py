@@ -12,7 +12,6 @@ from app.schemas import JobListPublic, JobPublic
 router = APIRouter(prefix="/scrapper", tags=["scrapper"])
 
 
-
 @router.get("/task/{task_id}", response_model=JobPublic)
 async def get_task_status(task_id: str, db: DbSession) -> JobPublic:
     """Get the status and results of a scraping task.
