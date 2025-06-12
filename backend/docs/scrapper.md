@@ -12,20 +12,6 @@ AI-powered web scraping and content analysis system that extracts, processes, an
 - **Metadata Extraction**: SEO tags, Open Graph, Twitter Cards, Schema.org
 - **Content Structuring**: Headers, links, media extraction
 
-## Quick Start
-
-```python
-from app.scrapper.scrapper import Scrapper
-from app.scrapper.analyzer import ScrapperAnalyzer
-
-# Basic usage
-scrapper = Scrapper("https://example.com")
-await scrapper.fetch()
-
-# Complete analysis
-analyzer = ScrapperAnalyzer(scrapper.soup)
-results = await analyzer.analyze()
-```
 
 ## Architecture
 
@@ -33,7 +19,6 @@ results = await analyzer.analyze()
 - **ContentExtractor**: HTML content structuring  
 - **MetadataAnalyzer**: SEO and structured data extraction
 - **NLPLayer**: AI-powered text analysis
-- **ScrapperAnalyzer**: Orchestrates the complete pipeline
 
 ## ML Models
 

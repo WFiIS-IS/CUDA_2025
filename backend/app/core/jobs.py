@@ -2,15 +2,18 @@
 
 import asyncio
 import uuid
+from typing import Any
 from datetime import UTC, datetime, timedelta
 
 from sqlmodel import select
 
 from app.db import get_async_session
+from app.llm.nlp import NLPLayer
 from app.models import Job, JobStatus
 from app.schemas import AnalysisResults
 
-from ..scrapper.scrape_url_cli import process_url
+from app.scrapper.content_extractor import ContentExtractor
+from app.scrapper.scrapper import Scrapper
 
 JOB_TIMEOUT_SECONDS = 600
 
@@ -48,12 +51,15 @@ async def cleanup_orphaned_jobs() -> None:
         break  # Only use first session from generator
 
 
-async def process_scraping(task_id: str, url: str) -> None:
+
+
+
+async def process_url(task_id: str, url: str) -> None:
     """Background task to process URL scraping with timeout.
 
     Args:
-        task_id (str): Unique identifier for the scraping task.
-        url (str): The URL to scrape and analyze.
+        task_id (str): Unique identifier for the processing task.
+        url (str): The URL to process.
     """
     async for session in get_async_session():
         try:
@@ -78,11 +84,12 @@ async def process_scraping(task_id: str, url: str) -> None:
 
             try:
                 results = await asyncio.wait_for(
-                    process_url(url), timeout=JOB_TIMEOUT_SECONDS
+                    _process_url(url), timeout=JOB_TIMEOUT_SECONDS
                 )
                 print(f"🧠 Analysis completed for job {task_id}")
 
                 # Convert results using Pydantic for validation and numpy type conversion
+                print(results)
                 analysis_results = AnalysisResults(**results)
                 serializable_results = analysis_results.model_dump()
 
@@ -114,3 +121,61 @@ async def process_scraping(task_id: str, url: str) -> None:
                 await session.commit()
                 print(f"❌ Job {task_id} marked as FAILED in database")
         break  # Only use first session from generator
+
+
+
+async def _process_url(url: str) -> dict[str, Any]:
+    """Process a single URL through the complete analysis pipeline.
+
+    This function handles the full scraping and analysis workflow for a given URL,
+    including content fetching, parsing, and comprehensive AI-powered analysis.
+
+    Args:
+        url (str): The URL to scrape and analyze. Must be a valid HTTP/HTTPS URL.
+
+    Returns:
+        dict[str, Any]: Analysis results from ScrapperAnalyzer containing
+                       sentiment, summary, topics, meta, and tags data.
+
+    Raises:
+        ValueError: If the scrapper fails to fetch content from the URL.
+        Exception: If any part of the analysis pipeline fails.
+
+    Note:
+        The process includes:
+        1. Initialize Scrapper with the URL
+        2. Fetch and parse web content using Playwright
+        3. Verify content was successfully retrieved
+        4. Run complete analysis pipeline (NLP, metadata, content extraction)
+        5. Return structured results for further processing
+    """
+    scrapper = Scrapper(url)
+    await scrapper.fetch()
+
+    # Ensure soup is not None after fetch
+    if scrapper.soup is None:
+        raise ValueError("Failed to fetch content from URL")
+    
+    content_extractor = ContentExtractor(scrapper.soup)
+    content = content_extractor.extract()
+
+    nlp = NLPLayer(content)
+    summary = await nlp.summarize()
+    collection = await nlp.collection()
+    title = await nlp.title()
+
+    tags: set[str] = set()
+
+    await _save_embedding(url, content)
+
+    return {
+        "summary": summary,
+        "collection": collection,
+        "title": title,
+        "tags": list(tags)
+    }
+
+
+async def _save_embedding(url: str, content: str) -> list[float]:
+    """Create an embedding for the given content."""
+    pass

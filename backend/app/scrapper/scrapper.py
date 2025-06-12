@@ -6,7 +6,6 @@ from playwright.async_api import async_playwright
 # Import playwright_stealth for stealth mode
 from playwright_stealth import stealth_async
 
-from app.scrapper.analyzer import ScrapperAnalyzer
 
 # Add imports for new modules
 
@@ -188,25 +187,25 @@ class Scrapper:
         return ""
 
 
-async def main() -> None:
-    """Demo function showing scrapper usage with multiple URLs.
+# async def main() -> None:
+#     """Demo function showing scrapper usage with multiple URLs.
 
-    This function demonstrates how to use the Scrapper class with the
-    ScrapperAnalyzer to perform complete content analysis on multiple URLs.
-    """
-    urls = [
-        "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a",
-        "https://medium.com/@adinlewakoyejo/under-the-libuv-hood-how-the-node-js-event-loop-works-158347ec2261",
-        "https://medium.com/@francescofranco_39234/object-detection-with-python-and-huggingface-transformers-508794c62456",
-    ]
+#     This function demonstrates how to use the Scrapper class with the
+#     ScrapperAnalyzer to perform complete content analysis on multiple URLs.
+#     """
+#     urls = [
+#         "https://medium.com/@lautisuarez081/fastapi-best-practices-and-design-patterns-building-quality-python-apis-31774ff3c28a",
+#         "https://medium.com/@adinlewakoyejo/under-the-libuv-hood-how-the-node-js-event-loop-works-158347ec2261",
+#         "https://medium.com/@francescofranco_39234/object-detection-with-python-and-huggingface-transformers-508794c62456",
+#     ]
 
-    for url in urls:
-        scrapper = Scrapper(url)
-        await scrapper.fetch()
-        analyzer = ScrapperAnalyzer(scrapper.soup)
-        results = await analyzer.analyze()
-        print("Sentiment:", results["sentiment"])
+#     for url in urls:
+#         scrapper = Scrapper(url)
+#         await scrapper.fetch()
+#         analyzer = ScrapperAnalyzer(scrapper.soup)
+#         results = await analyzer.analyze()
+#         print("Sentiment:", results["sentiment"])
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    print("DUPA")

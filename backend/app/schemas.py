@@ -105,13 +105,12 @@ def convert_numpy_types(obj: Any) -> Any:
 class AnalysisResults(BaseModel):
     """Pydantic model for analysis results with automatic type conversion."""
 
-    sentiment: dict[str, Any]
-    summary: list[dict[str, Any]]
-    topics: dict[str, Any]
-    meta: dict[str, Any]
+    summary: str
+    collection: str
+    title: str
     tags: list[str]
 
-    @field_serializer("sentiment", "summary", "topics", "meta", "tags")
+    @field_serializer("summary", "collection", "title", "tags")
     def serialize_fields(self, value: Any) -> Any:
         """Custom serializer to handle numpy types."""
         return convert_numpy_types(value)
@@ -130,5 +129,13 @@ class TagCreate(BaseModel):
 class TagPublic(BaseModel):
     tag_name: str
     usage_count: int
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class SearchPublic(BaseModel):
+    """Public model for search results."""
+
+    results: list[dict[str, Any]]
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

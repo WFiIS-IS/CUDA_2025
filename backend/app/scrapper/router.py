@@ -1,76 +1,16 @@
 import uuid
 from http import HTTPStatus
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from sqlmodel import select
 
 from app.db import DbSession
-from app.models import Bookmark, Job, JobStatus
-from app.schemas import JobCreate, JobListPublic, JobPublic, JobSummaryPublic
-
-from ..core.jobs import process_scraping
+from app.models import Job, JobStatus
+from app.schemas import JobListPublic, JobPublic
 
 # Create the router instance
 router = APIRouter(prefix="/scrapper", tags=["scrapper"])
 
-
-@router.post("/scrape", response_model=JobSummaryPublic)
-async def scrape_url(
-    background_tasks: BackgroundTasks,
-    db: DbSession,
-    job_create: JobCreate,
-) -> JobSummaryPublic:
-    """Submit a URL for scraping and analysis.
-
-    This endpoint accepts a URL and returns a task ID that can be used to
-    check the scraping progress and retrieve results asynchronously.
-
-    Args:
-        background_tasks (BackgroundTasks): FastAPI background tasks manager.
-        db (DbSession): Database session dependency.
-        url (HttpUrl): The URL to scrape. Must be a valid HTTP/HTTPS URL.
-
-    Returns:
-        ScrapingTask: Task information including unique ID for tracking.
-                     If a job is already processing for this URL, returns that job's info.
-
-    Example:
-        GET /scrapper/scrape?url=https://example.com
-    """
-
-    # Check if there is a bookmark for this url
-    existing_bookmark = await db.exec(
-        select(Bookmark).where(Bookmark.url == job_create.url)
-    )
-    bookmark = existing_bookmark.first()
-
-    if not bookmark:
-        bookmark = Bookmark(url=job_create.url)
-        db.add(bookmark)
-        await db.commit()
-        await db.refresh(bookmark)
-
-    existing_job = await db.exec(select(Job).where(Job.bookmark_id == bookmark.id))
-    job = existing_job.first()
-
-    if job and job.status != JobStatus.FAILED:
-        return JobSummaryPublic.model_validate(job)
-
-    job = Job.model_validate(job_create, update={"bookmark_id": bookmark.id})
-
-    db.add(job)
-    await db.commit()
-    await db.refresh(job)
-
-    background_tasks.add_task(process_scraping, str(job.id), job_create.url)
-
-    return JobSummaryPublic(
-        id=str(job.id),
-        status=job.status.value,
-        created_at=job.created_at.isoformat(),
-        url=job_create.url,
-        bookmark_id=str(bookmark.id),
-    )
 
 
 @router.get("/task/{task_id}", response_model=JobPublic)

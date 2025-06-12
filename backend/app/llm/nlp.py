@@ -11,26 +11,28 @@ from typing import Any
 from .llm_models import (
     get_sentiment_model,
     get_summarization_model,
-    get_topic_classification_model,
+    get_collection_model,
+    get_title_model,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class HuggingFaceLLM:
-    """HuggingFace Transformers implementation."""
+class NLPLayer:
+    """Gemini implementation."""
 
-    def __init__(self) -> None:
+    def __init__(self, text: str) -> None:
         """Initialize HuggingFace LLM."""
         self.max_text_length = 512
+        self.text = text
 
-    async def analyze_sentiment(self, text: str) -> dict[str, Any]:
+    async def sentiment(self) -> dict[str, Any]:
         """Analyze sentiment using HuggingFace DistilBERT model."""
-        if not text.strip():
+        if not self.text.strip():
             return {"label": "NEUTRAL", "score": 0.0}
 
         # Truncate text for performance
-        truncated_text = text[: self.max_text_length]
+        truncated_text = self.text[: self.max_text_length]
 
         # Run in thread pool to avoid blocking event loop
         loop = asyncio.get_event_loop()
@@ -48,36 +50,28 @@ class HuggingFaceLLM:
             logger.error(f"Sentiment analysis failed: {e}")
             return {"label": "NEUTRAL", "score": 0.0}
 
-    async def summarize_text(
-        self, text: str, max_length: int = 130, min_length: int = 30
+    async def summarize(
+        self,  max_length: int = 130, min_length: int = 30
     ) -> dict[str, Any]:
         """Generate text summary using HuggingFace DistilBART model."""
         # Use longer text limit for summarization
-        truncated_text = text[:1024]
+        truncated_text = self.text[:1024]
 
         loop = asyncio.get_event_loop()
 
-        try:
-            pipeline = get_summarization_model()
-            result = await loop.run_in_executor(
-                None,
-                lambda: pipeline(truncated_text),
-            )
+        pipeline = get_summarization_model()
+        result = await loop.run_in_executor(
+            None,
+            lambda: pipeline(truncated_text),
+        )
 
-            if result and len(result) > 0:
-                return result
-            else:
-                return {"summary_text": ""}
+        return result
 
-        except Exception as e:
-            logger.error(f"Text summarization failed: {e}")
-            return {"summary_text": ""}
-
-    async def classify_topics(
-        self, text: str, candidate_labels: list[str] | None = None
+    async def collection(
+        self, candidate_topics: list[str] | None = None
     ) -> dict[str, Any]:
         """Classify text topics using HuggingFace BART-MNLI model."""
-        if candidate_labels is None:
+        if candidate_topics is None:
             candidate_labels = [
                 "technology",
                 "health",
@@ -88,47 +82,30 @@ class HuggingFaceLLM:
                 "entertainment",
             ]
 
-        truncated_text = text[: self.max_text_length]
+        truncated_text = self.text[: self.max_text_length]
 
         loop = asyncio.get_event_loop()
 
-        try:
-            pipeline = get_topic_classification_model(candidate_labels)
-            result = await loop.run_in_executor(
-                None, lambda: pipeline(truncated_text)
-            )
+        pipeline = get_collection_model(candidate_topics)
+        result = await loop.run_in_executor(
+            None, lambda: pipeline(truncated_text)
+        )
 
-            return result
-
-        except Exception as e:
-            logger.error(f"Topic classification failed: {e}")
-            return {"sequence": truncated_text, "labels": [], "scores": []}
+        return result
 
 
-# Legacy compatibility functions for backward compatibility
-async def analyze_sentiment(text: str) -> Any:
-    """Legacy function for backward compatibility."""
-    llm = HuggingFaceLLM()
-    return await llm.analyze_sentiment(text)
+    async def title(self) -> str:
+        """Generate a title for the given text."""
+        
+        truncated_text = self.text[:1024]
 
+        loop = asyncio.get_event_loop()
 
-class NLPLayer:
-    """Legacy NLP layer for backward compatibility."""
+        pipeline = get_title_model()
+        result = await loop.run_in_executor(
+            None,
+            lambda: pipeline(truncated_text),
+        )
 
-    def __init__(self, text: str) -> None:
-        """Initialize the NLP layer with text content."""
-        self.text = text
-        self._llm = HuggingFaceLLM()
+        return result
 
-    async def sentiment(self) -> Any:
-        """Analyze sentiment of the text content."""
-        return await self._llm.analyze_sentiment(self.text)
-
-    async def summarize(self) -> Any:
-        """Generate a summary of the text content."""
-        result = await self._llm.summarize_text(self.text)
-        return [result]
-
-    async def topic_model(self, candidate_labels: list[str] | None = None) -> Any:
-        """Classify the text content into topic categories."""
-        return await self._llm.classify_topics(self.text, candidate_labels)

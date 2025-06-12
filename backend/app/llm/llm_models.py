@@ -53,12 +53,12 @@ def get_sentiment_model():
 
 def get_summarization_model():
     def summarize(text):
-        return gemini_request(text, "Summarize")
+        return gemini_request(text, "Summarize text and return as a string with max 200 words. If text is too short, return as it is. If you can't summarize, return as it is.")
     return summarize
 
 _topic_history = set()
 
-def get_topic_classification_model(candidate_labels=None):
+def get_collection_model(candidate_labels=None):
     def classify(text):
         global _topic_history
         # Połącz aktualnych kandydatów z historią
@@ -68,26 +68,21 @@ def get_topic_classification_model(candidate_labels=None):
         candidates_str = ", ".join(f'"{c}"' for c in candidates_list) if candidates_list else "None"
 
         prompt = (
-            "Classify the main topics of the following text. "
+            "Classify the main topic of the following text. "
             f"Choose from these example topics: [{candidates_str}]. "
-            "If none fit, create new topics. "
-            "Return ONLY a JSON array: {\"topics\": [<TOPIC1>, <TOPIC2>, ...]}."
+            "Check for appropriate topic. If none fit, create new vague topic."
+            "Return as a string with best topic."
             f"\n\nText: \"{text}\""
         )
         result = gemini_request("", prompt)
-        match = re.search(r'\{.*\}', result, re.DOTALL)
-        if match:
-            try:
-                data = json.loads(match.group(0))
-                topics = [str(t).strip() for t in data.get("topics", [])]
-                for topic in topics:
-                    _topic_history.add(topic)
-                return {"topics": topics}
-            except Exception:
-                pass
-        # fallback na czysty tekst
         topic = result.strip()
         if topic:
             _topic_history.add(topic)
-        return {"topics": [topic]}
+        return topic
     return classify
+
+def get_title_model():
+    def title(text):
+        return gemini_request(text, "Create a title for the following text. Title must be max 10 words. If text is too short, return as it is. If you can't create a title, return as it is.")
+    return title
+
