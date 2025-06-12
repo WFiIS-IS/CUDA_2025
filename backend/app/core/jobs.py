@@ -15,6 +15,10 @@ from app.schemas import AnalysisResults
 from app.scrapper.content_extractor import ContentExtractor
 from app.scrapper.scrapper import Scrapper
 
+from app.llm.embeddings import EmbeddingLayer
+from app.models import ContentEmbedding
+from sqlmodel import select
+
 JOB_TIMEOUT_SECONDS = 600
 
 
@@ -213,5 +217,49 @@ async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any
 
 
 async def _save_embedding(url: str, content: str) -> list[float]:
-    """Create an embedding for the given content."""
-    pass
+    """Create an embedding for the given content and save it to the database.
+
+    Args:
+        url: The URL of the content
+        content: The text content to embed
+
+    Returns:
+        The embedding vector as a list of floats
+    """
+
+    # Create embedding layer instance
+    embedding_layer = EmbeddingLayer(content)
+    content_hash = embedding_layer.get_content_hash()
+
+    async for session in get_async_session():
+        # Check if embedding already exists for this content
+        existing_query = select(ContentEmbedding).where(
+            ContentEmbedding.content_hash == content_hash,
+            ContentEmbedding.url == url,
+        )
+        existing_embedding = await session.exec(existing_query)
+        existing_embedding = existing_embedding.first()
+
+        if existing_embedding:
+            print(f"📊 Embedding already exists for URL: {url}")
+            return existing_embedding.embedding
+
+        # Create new embedding
+        print(f"🤖 Creating embedding for URL: {url}")
+        embedding_vector = await embedding_layer.create_embedding()
+
+        # Save to database
+        content_embedding = ContentEmbedding(
+            url=url,
+            content_hash=content_hash,
+            content_preview=embedding_layer.get_content_preview(),
+            embedding=embedding_vector,
+        )
+
+        session.add(content_embedding)
+        await session.commit()
+
+        print(f"💾 Embedding saved for URL: {url}")
+        return embedding_vector
+
+        break  # Only use first session from generator

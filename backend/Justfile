@@ -8,3 +8,6 @@ migrate:
 
 make-migration name:
     uv run alembic revision --autogenerate -m {{name}}
+
+format:
+    uv run ruff format

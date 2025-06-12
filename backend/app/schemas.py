@@ -136,6 +136,6 @@ class TagPublic(BaseModel):
 class SearchPublic(BaseModel):
     """Public model for search results."""
 
-    results: list[dict[str, Any]]
+    results: list[str]
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

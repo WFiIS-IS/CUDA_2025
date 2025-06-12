@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 from sqlalchemy import func
 from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel
+from pgvector.sqlalchemy import Vector
 
 
 @unique
@@ -111,3 +112,21 @@ class Tag(SQLModel, table=True):
     __tablename__ = "tag"  # type: ignore
 
     name: str = Field(max_length=64, primary_key=True)
+
+
+class ContentEmbedding(SQLModel, table=True):
+    """Database model for storing content embeddings for semantic search."""
+
+    __tablename__ = "content_embedding"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    url: str = Field(max_length=1024, index=True)
+    content_hash: str = Field(max_length=64, index=True)  # SHA-256 hash of content
+    content_preview: str = Field(max_length=500)  # First 500 chars for preview
+    embedding: list[float] = Field(
+        sa_column=Column(Vector(384))
+    )  # 384-dim embeddings from sentence-transformers
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+    )
