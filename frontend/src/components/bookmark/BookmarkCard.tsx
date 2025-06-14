@@ -42,7 +42,12 @@ export function BookmarkCard({ url, title, description, collectionId, id }: Book
   const { mutate: deleteBookmark } = useDeleteBookmark();
 
   return (
-    <Card className="group h-[200px] cursor-pointer transition-all hover:shadow-md">
+    <Card
+      className="group h-[200px] cursor-pointer border border-transparent transition-all hover:scale-[1.03] hover:border-primary hover:shadow-md"
+      onClick={() => {
+        window.open(url, '_blank');
+      }}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
