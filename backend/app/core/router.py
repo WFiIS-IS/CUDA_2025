@@ -2,32 +2,31 @@ import uuid
 from http import HTTPStatus
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query, Response, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlmodel import select
 
+from app.core.jobs import process_url
 from app.db import DbSession
 from app.models import (
     Bookmark,
     Collection,
-    Tag,
-    TagBookmarkAssociation,
-    Bookmark,
     Job,
     JobStatus,
+    Tag,
+    TagBookmarkAssociation,
 )
 from app.schemas import (
     BookmarkCreate,
     BookmarkPublic,
+    BookmarkUpdate,
     CollectionCreate,
     CollectionPublic,
-    TagCreate,
-    TagPublic,
     JobCreate,
     JobSummaryPublic,
+    TagCreate,
+    TagPublic,
 )
-
-from app.core.jobs import process_url
 
 router = APIRouter()
 
@@ -111,6 +110,30 @@ async def read_collection_bookmarks(collection_id: uuid.UUID, session: DbSession
         select(Bookmark).where(Bookmark.collection_id == collection.id)
     )
     return list(bookmarks)
+
+
+@router.put(
+    "/bookmarks/{bookmark_id}/",
+    response_model=BookmarkPublic,
+    tags=["links"],
+)
+async def update_collection_bookmark(
+    bookmark_id: uuid.UUID,
+    session: DbSession,
+    body: BookmarkUpdate,
+):
+    bookmark = await session.get(Bookmark, bookmark_id)
+    if not bookmark:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Bookmark with id "{bookmark_id}" not found',
+        )
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(bookmark, field, value)
+    session.add(bookmark)
+    await session.commit()
+    await session.refresh(bookmark)
+    return BookmarkPublic.model_validate(bookmark)
 
 
 @router.post(

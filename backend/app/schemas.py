@@ -49,6 +49,7 @@ class BookmarkUpdate(BookmarkBase):
     url: str | None = Field(default=None, max_length=1024)  # type: ignore
     title: str | None = Field(default=None, max_length=256)
     description: str | None = Field(default=None, max_length=1024)
+    collection_id: uuid.UUID | None = Field(default=None)
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 

@@ -1,4 +1,5 @@
-import { ExternalLink, Save, Trash2 } from 'lucide-react';
+import { ExternalLink, Save } from 'lucide-react';
+import { useId } from 'react';
 
 import { BookmarkEditForm } from '@/components/edit-drawer/BookmarkEditForm';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { closeEditDrawer, useEditDrawerState } from './drawer-store';
 
 export function EditDrawer() {
+  const formId = useId();
   const { isOpen, initialData } = useEditDrawerState();
 
   if (!initialData) return null;
@@ -33,25 +35,11 @@ export function EditDrawer() {
         </SheetHeader>
 
         <ScrollArea className="min-h-0 grow pr-4">
-          <BookmarkEditForm bookmarkData={initialData} />
+          <BookmarkEditForm bookmarkData={initialData} formId={formId} />
         </ScrollArea>
 
         <div className="flex justify-between border-t pt-4">
-          <Button variant="destructive" size="sm">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => {
-              closeEditDrawer();
-            }}
-            size="sm"
-          >
-            Cancel
-          </Button>
-          <Button size="sm">
+          <Button size="sm" form={formId} type="submit">
             <Save className="mr-2 h-4 w-4" />
             Save Changes
           </Button>

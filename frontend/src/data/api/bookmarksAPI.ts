@@ -5,9 +5,11 @@ import {
   type Bookmark,
   type BookmarkCreate,
   BookmarkSchema,
+  type BookmarkUpdate,
   type Collection,
   type CollectionCreate,
   CollectionSchema,
+  type TagCreate,
   TagSchema,
 } from '@/data/data-types';
 
@@ -53,6 +55,13 @@ export async function createCollection({
 
 export async function deleteBookmark({ apiClient, bookmarkId }: CommonQueryParams & { bookmarkId: Bookmark['id'] }) {
   await apiClient.delete(`/api/bookmarks/${bookmarkId}/`);
+}
+
+export async function updateBookmark({ apiClient, updateData }: CommonQueryParams & { updateData: BookmarkUpdate }) {
+  const response = await apiClient.put(`/api/bookmarks/${updateData.id}/`, updateData);
+  const validatedData = BookmarkSchema.parse(response.data);
+
+  return validatedData;
 }
 
 export async function deleteCollection({
@@ -111,6 +120,13 @@ export async function removeTagFromBookmark({
 export async function fetchAllTags({ apiClient }: CommonQueryParams) {
   const response = await apiClient.get('/api/tags/');
   const validatedData = z.array(TagSchema).parse(response.data);
+
+  return validatedData;
+}
+
+export async function createTag({ apiClient, createData }: CommonQueryParams & { createData: TagCreate }) {
+  const response = await apiClient.post('/api/tags/', createData);
+  const validatedData = TagSchema.parse(response.data);
 
   return validatedData;
 }

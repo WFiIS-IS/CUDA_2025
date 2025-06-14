@@ -4,6 +4,7 @@ import { CheckIcon, Tag } from 'lucide-react';
 import { type FormEvent, useCallback } from 'react';
 import z from 'zod/v4';
 
+import { NewTagDialog } from '@/components/edit-drawer/NewTagDialog';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Combobox } from '@/components/ui/Combobox';
@@ -12,7 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Separator } from '@/components/ui/Separator';
 import { Textarea } from '@/components/ui/Textarea';
-import { bookmarksQueryOptions } from '@/data/bookmarks';
+import { bookmarksQueryOptions, useUpdateBookmark } from '@/data/bookmarks';
 import { collectionsQueryOptions } from '@/data/collections';
 import type { Bookmark } from '@/data/data-types';
 import { tagsQueryOptions } from '@/data/tags';
@@ -21,6 +22,7 @@ import { cn } from '@/lib/styles';
 
 export type BookmarkEditFormProps = {
   bookmarkData: Bookmark;
+  formId?: string;
 };
 
 const formSchema = z.object({
@@ -33,7 +35,7 @@ const formSchema = z.object({
 
 type FormType = z.infer<typeof formSchema>;
 
-export function BookmarkEditForm({ bookmarkData }: BookmarkEditFormProps) {
+export function BookmarkEditForm({ bookmarkData, formId }: BookmarkEditFormProps) {
   const apiClient = useApiClient();
   const { collections, tags, allTags } = useSuspenseQueries({
     queries: [
@@ -49,6 +51,7 @@ export function BookmarkEditForm({ bookmarkData }: BookmarkEditFormProps) {
       };
     },
   });
+  const { mutate: updateBookmark } = useUpdateBookmark();
 
   const form = useForm({
     defaultValues: {
@@ -58,9 +61,23 @@ export function BookmarkEditForm({ bookmarkData }: BookmarkEditFormProps) {
       collectionId: bookmarkData.collectionId ?? undefined,
       tags,
     } as FormType,
-    onSubmit: (values) => {
-      console.log(values);
+    onSubmit: ({ value }) => {
+      const removedTags = tags.filter((tag) => !value.tags.includes(tag));
+      const addedTags = value.tags.filter((tag) => !tags.includes(tag));
+
+      updateBookmark({
+        id: bookmarkData.id,
+        collectionId: value.collectionId ?? null,
+        title: value.title ?? null,
+        description: value.description ?? null,
+        url: value.url,
+        tags: {
+          add: addedTags,
+          remove: removedTags,
+        },
+      });
     },
+
     validators: {
       onSubmit: formSchema,
     },
@@ -76,7 +93,7 @@ export function BookmarkEditForm({ bookmarkData }: BookmarkEditFormProps) {
   );
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} id={formId}>
       <div className="space-y-6 py-4">
         <form.Field name="title">
           {(field) => (
@@ -183,9 +200,11 @@ export function BookmarkEditForm({ bookmarkData }: BookmarkEditFormProps) {
                     );
                   }}
                   popoverActions={
-                    <Button variant="secondary" className="w-full" size="sm">
-                      New
-                    </Button>
+                    <NewTagDialog>
+                      <Button variant="secondary" className="w-full" size="sm">
+                        New
+                      </Button>
+                    </NewTagDialog>
                   }
                 />
               </span>

@@ -22,9 +22,15 @@ export type CollectionCreate = Pick<Collection, 'name'>;
 
 export type BookmarkCreate = Pick<Bookmark, 'url' | 'title' | 'description' | 'collectionId'>;
 
+export type BookmarkUpdate = Bookmark;
+
 export const TagSchema = z.object({
   tagName: z.string(),
   usageCount: z.number(),
 });
 
 export type Tag = z.infer<typeof TagSchema>;
+
+export type TagCreate = {
+  tag: string;
+};
