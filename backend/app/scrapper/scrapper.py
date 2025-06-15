@@ -208,4 +208,4 @@ class Scrapper:
 
 
 if __name__ == "__main__":
-    print("DUPA")
+    print("test")

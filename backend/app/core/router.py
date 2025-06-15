@@ -123,6 +123,7 @@ async def update_collection_bookmark(
     bookmark_id: uuid.UUID,
     session: DbSession,
     body: BookmarkUpdate,
+    background_tasks: BackgroundTasks,
 ):
     bookmark = await session.get(Bookmark, bookmark_id)
     if not bookmark:
@@ -135,6 +136,17 @@ async def update_collection_bookmark(
     session.add(bookmark)
     await session.commit()
     await session.refresh(bookmark)
+
+    existing_job = await session.exec(select(Job).where(Job.bookmark_id == bookmark.id))
+    job = existing_job.first()
+    if not job or job.status == JobStatus.FAILED:
+        job_create = JobCreate(url=bookmark.url)
+        job = Job.model_validate(job_create, update={"bookmark_id": bookmark.id})
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        background_tasks.add_task(process_url, str(job.id), bookmark.url)
+
     return BookmarkPublic.model_validate(bookmark)
 
 
@@ -144,7 +156,7 @@ async def update_collection_bookmark(
     tags=["links"],
 )
 async def create_collection_bookmark(
-    collection_id: uuid.UUID, session: DbSession, body: BookmarkCreate
+    collection_id: uuid.UUID, session: DbSession, body: BookmarkCreate, background_tasks: BackgroundTasks
 ):
     collection = await session.get(Collection, collection_id)
     if not collection:
@@ -156,6 +168,17 @@ async def create_collection_bookmark(
     session.add(link_entry)
     await session.commit()
     await session.refresh(link_entry)
+
+    existing_job = await session.exec(select(Job).where(Job.bookmark_id == link_entry.id))
+    job = existing_job.first()
+    if not job or job.status == JobStatus.FAILED:
+        job_create = JobCreate(url=link_entry.url)
+        job = Job.model_validate(job_create, update={"bookmark_id": link_entry.id})
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        background_tasks.add_task(process_url, str(job.id), link_entry.url)
+
     return BookmarkPublic.model_validate(link_entry)
 
 
@@ -185,7 +208,7 @@ async def read_all_bookmarks(
     response_model=BookmarkPublic,
     tags=["links"],
 )
-async def create_bookmark(session: DbSession, body: BookmarkCreate):
+async def create_bookmark(session: DbSession, body: BookmarkCreate, background_tasks: BackgroundTasks):
     collection_Id = body.collection_id
     if collection_Id:
         collection = await session.get(Collection, collection_Id)
@@ -198,6 +221,18 @@ async def create_bookmark(session: DbSession, body: BookmarkCreate):
     session.add(bookmark)
     await session.commit()
     await session.refresh(bookmark)
+
+
+    existing_job = await session.exec(select(Job).where(Job.bookmark_id == bookmark.id))
+    job = existing_job.first()
+    if not job or job.status == JobStatus.FAILED:
+        job_create = JobCreate(url=bookmark.url)
+        job = Job.model_validate(job_create, update={"bookmark_id": bookmark.id})
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        background_tasks.add_task(process_url, str(job.id), bookmark.url)
+
     return BookmarkPublic.model_validate(bookmark)
 
 
