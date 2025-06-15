@@ -37,7 +37,7 @@ type FormType = z.infer<typeof formSchema>;
 
 export function BookmarkEditForm({ bookmarkData, formId }: BookmarkEditFormProps) {
   const apiClient = useApiClient();
-  const { collections, tags, allTags } = useSuspenseQueries({
+  const { collections, tags, allTags, aiSuggestion } = useSuspenseQueries({
     queries: [
       collectionsQueryOptions({ apiClient }).all,
       bookmarksQueryOptions({ apiClient }).byId({ id: bookmarkData.id }).tags,
@@ -86,13 +86,6 @@ export function BookmarkEditForm({ bookmarkData, formId }: BookmarkEditFormProps
     },
   });
 
-  const aiSuggestion = {
-    title: 'AI Suggestion',
-    description: 'AI Suggestion',
-    tags: ['tag1', 'tag2', 'tag3', 'tag4', 'tag5', 'tag6', 'tag7', 'tag8', 'tag9', 'tag10'],
-    collectionId: null,
-  };
-
   const handleSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -137,7 +130,7 @@ export function BookmarkEditForm({ bookmarkData, formId }: BookmarkEditFormProps
                     onClick={() => field.handleChange(aiSuggestion.title)}
                   >
                     <Sparkles className="mr-1 text-primary " />
-                    {aiSuggestion.title}
+                    <span className="w-full">{aiSuggestion.title}</span>
                   </Badge>
                 </div>
               )}
@@ -192,28 +185,45 @@ export function BookmarkEditForm({ bookmarkData, formId }: BookmarkEditFormProps
         </form.Field>
 
         <form.Field name="collectionId">
-          {(field) => (
-            <div className="min-w-0 max-w-full space-y-2">
-              <Label>Collection</Label>
-              <Combobox
-                items={collections.map(({ id, name }) => ({
-                  value: id,
-                  label: name,
-                }))}
-                selected={field.state.value}
-                onSelectedChange={(value) => field.handleChange(value)}
-                placeholder="Select a collection"
-                searchPlaceholder="Search collections..."
-              />
-            </div>
-          )}
+          {(field) => {
+            const suggestedCollection = aiSuggestion?.collectionId
+              ? collections.find((c) => c.id === aiSuggestion.collectionId)
+              : null;
+            return (
+              <div className="min-w-0 max-w-full space-y-2">
+                <Label>Collection</Label>
+                <Combobox
+                  items={collections.map(({ id, name }) => ({
+                    value: id,
+                    label: name,
+                  }))}
+                  selected={field.state.value}
+                  onSelectedChange={(value) => field.handleChange(value)}
+                  placeholder="Select a collection"
+                  searchPlaceholder="Search collections..."
+                />
+                {suggestedCollection && !field.state.meta.isDirty && (
+                  <div className="mt-1 flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="flex w-full cursor-pointer border-2 border-primary bg-primary/10 px-3 py-2 font-semibold text-primary shadow-sm transition-colors duration-150 hover:bg-primary/20 [&>svg]:size-5"
+                      onClick={() => field.handleChange(suggestedCollection.id)}
+                    >
+                      <Sparkles className="mr-1 text-primary" />
+                      <span className="w-full">{suggestedCollection.name}</span>
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            );
+          }}
         </form.Field>
 
         <form.Field name="tags">
           {(field) => {
-            const aiTagsToSuggest = !aiSuggestion.tags
+            const aiTagsToSuggest = aiSuggestion?.tags
               ? null
-              : aiSuggestion.tags.filter((tagName) => !field.state.value.includes(tagName));
+              : aiSuggestion?.tags.filter((tagName) => !field.state.value.includes(tagName));
 
             return (
               <div className="min-w-0 space-y-2">

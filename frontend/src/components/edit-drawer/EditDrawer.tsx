@@ -5,6 +5,7 @@ import { BookmarkEditForm } from '@/components/edit-drawer/BookmarkEditForm';
 import { Button } from '@/components/ui/Button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/Sheet';
 
+import { ScrollArea } from '@/components/ui/ScrollArea';
 import { closeEditDrawer, useEditDrawerState } from './drawer-store';
 
 export function EditDrawer() {
@@ -33,7 +34,11 @@ export function EditDrawer() {
           </div>
         </SheetHeader>
 
-        <BookmarkEditForm bookmarkData={initialData} formId={formId} />
+        <ScrollArea className="max-h-[calc(100vh-200px)]">
+          <div>
+            <BookmarkEditForm bookmarkData={initialData} formId={formId} />
+          </div>
+        </ScrollArea>
 
         <div className="flex justify-between border-t pt-4">
           <Button size="sm" form={formId} type="submit">
