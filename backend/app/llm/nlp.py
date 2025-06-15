@@ -8,10 +8,16 @@ import asyncio
 import logging
 from typing import Any
 
+from sqlmodel import select
+
+from app.db import DbSession
+from app.models import Tag
+
 from .llm_models import (
+    get_collection_model,
     get_sentiment_model,
     get_summarization_model,
-    get_collection_model,
+    get_tags_model,
     get_title_model,
 )
 
@@ -71,16 +77,6 @@ class NLPLayer:
         self, candidate_topics: list[str] | None = None
     ) -> dict[str, Any]:
         """Classify text topics using HuggingFace BART-MNLI model."""
-        if candidate_topics is None:
-            candidate_labels = [
-                "technology",
-                "health",
-                "finance",
-                "education",
-                "sports",
-                "politics",
-                "entertainment",
-            ]
 
         truncated_text = self.text[: self.max_text_length]
 
@@ -105,3 +101,27 @@ class NLPLayer:
         )
 
         return result
+
+    async def tags(self) -> list[str]:
+        """
+        Suggest tags for the given text using the collection model and all tags from the database.
+        """
+
+        async def get_all_tags():
+            async with DbSession() as session:
+                result = await session.exec(select(Tag.name))
+                return list(result)
+
+        all_tags = await get_all_tags()
+        if not all_tags:
+            return []
+
+        truncated_text = self.text[: self.max_text_length]
+        loop = asyncio.get_event_loop()
+        pipeline = get_tags_model(all_tags)
+        result = await loop.run_in_executor(None, lambda: pipeline(truncated_text))
+
+        if isinstance(result, dict) and "labels" in result:
+            return result["labels"]
+        return []
+

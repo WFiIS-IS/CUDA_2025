@@ -124,6 +124,7 @@ async def process_url(task_id: str, url: str) -> None:
                     title=analysis_results.title,
                     description=analysis_results.summary,
                     bookmark_id=job.bookmark_id,
+                    tags=analysis_results.tags,
                 )
 
                 session.add(ai_suggestion)
@@ -204,7 +205,7 @@ async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any
     collection = await nlp.collection(collections)
     title = await nlp.title()
 
-    tags: set[str] = set()
+    tags = await nlp.tags()
 
     await _save_embedding(url, content)
 

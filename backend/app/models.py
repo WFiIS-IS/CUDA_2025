@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import func
-from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel
+from sqlmodel import ARRAY, JSON, Column, DateTime, Field, Relationship, SQLModel, String
 
 
 @unique
@@ -107,6 +107,7 @@ class BookmarkAISuggestion(SQLModel, table=True):
     title: str = Field(max_length=256)
     description: str = Field(max_length=1024)
     collection_id: uuid.UUID | None = Field(foreign_key="collection.id", nullable=True)
+    tags: list[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
 
 
 class Tag(SQLModel, table=True):
