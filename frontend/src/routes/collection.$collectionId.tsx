@@ -1,6 +1,8 @@
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
+import { fallback, zodValidator } from '@tanstack/zod-adapter';
 import { useMemo } from 'react';
+import z from 'zod';
 
 import { AppHeader } from '@/components/AppHeader';
 import { PageWrapper } from '@/components/PageWrapper';
@@ -10,11 +12,17 @@ import { bookmarksQueryOptions } from '@/data/bookmarks';
 import { collectionsQueryOptions } from '@/data/collections';
 import { useApiClient } from '@/integrations/axios';
 
+const collectionBookmarksSearchSchema = z.object({
+  q: fallback(z.string().optional(), undefined),
+});
+
 export const Route = createFileRoute('/collection/$collectionId')({
   component: RouteComponent,
-  loader: async ({ context: { queryClient, apiClient }, params: { collectionId } }) => {
+  validateSearch: zodValidator(collectionBookmarksSearchSchema),
+  loaderDeps: ({ search }) => ({ search: search.q }),
+  loader: async ({ context: { queryClient, apiClient }, params: { collectionId }, deps: { search } }) => {
     const bookmarks = await queryClient.fetchQuery(
-      bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId }),
+      bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId, search }),
     );
     await Promise.all([
       ...bookmarks.map((bookmark) =>
@@ -37,9 +45,10 @@ export const Route = createFileRoute('/collection/$collectionId')({
 function RouteComponent() {
   const apiClient = useApiClient();
   const { collectionId } = Route.useParams();
+  const { search } = Route.useLoaderDeps();
   const { bookmarks, collection } = useSuspenseQueries({
     queries: [
-      bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId }),
+      bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId, search }),
       collectionsQueryOptions({ apiClient }).byId({ collectionId }),
     ],
     combine: (results) => {
@@ -59,7 +68,9 @@ function RouteComponent() {
   }, [bookmarks]);
 
   return (
-    <PageWrapper header={<AppHeader title={collection.name} subtitle={subtitle} collectionId={collectionId} />}>
+    <PageWrapper
+      header={<AppHeader title={collection.name} subtitle={subtitle} collectionId={collectionId} enableSearch />}
+    >
       <ScrollArea className="flex-1">
         <div className="p-6">
           {bookmarks.length === 0 ? (

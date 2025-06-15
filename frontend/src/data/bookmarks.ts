@@ -20,20 +20,22 @@ import { tagsQueryOptions } from '@/data/tags';
 import { useApiClient } from '@/integrations/axios';
 
 export const bookmarksQueryOptions = ({ apiClient, enabled = true }: CommonQueryParams) => ({
-  all: queryOptions({
-    ...cacheKeys.bookmarks.all,
-    queryFn: () => fetchAllBookmarks({ apiClient }),
-    enabled,
-  }),
-  unsorted: queryOptions({
-    ...cacheKeys.bookmarks.unsorted,
-    queryFn: () => fetchAllBookmarks({ apiClient, collectionId: null }),
-    enabled,
-  }),
-  byCollectionId: ({ collectionId }: { collectionId: Collection['id'] }) =>
+  all: ({ search }: { search?: string } = {}) =>
     queryOptions({
-      ...cacheKeys.bookmarks.byCollectionId(collectionId),
-      queryFn: () => fetchBookmarksByCollectionId({ apiClient, collectionId }),
+      ...cacheKeys.bookmarks.all._ctx.search(search),
+      queryFn: () => fetchAllBookmarks({ apiClient, search }),
+      enabled,
+    }),
+  unsorted: ({ search }: { search?: string } = {}) =>
+    queryOptions({
+      ...cacheKeys.bookmarks.unsorted._ctx.search(search),
+      queryFn: () => fetchAllBookmarks({ apiClient, collectionId: null, search }),
+      enabled,
+    }),
+  byCollectionId: ({ collectionId, search }: { collectionId: Collection['id']; search?: string }) =>
+    queryOptions({
+      ...cacheKeys.bookmarks.byCollectionId(collectionId)._ctx.search(search),
+      queryFn: () => fetchBookmarksByCollectionId({ apiClient, collectionId, search }),
       enabled,
     }),
   byId: ({ id }: { id: Bookmark['id'] }) => ({
@@ -60,11 +62,11 @@ export function useCreateBookmark() {
       await createBookmark({ apiClient, createData });
     },
     onSettled: (_, __, { collectionId }) => {
-      queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).all);
+      queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).all());
       if (collectionId) {
         queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId }));
       } else {
-        queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).unsorted);
+        queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).unsorted());
       }
       queryClient.invalidateQueries(collectionsQueryOptions({ apiClient }).all);
     },
@@ -102,10 +104,10 @@ export function useUpdateBookmark() {
       if (collectionId) {
         queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).byCollectionId({ collectionId }));
       } else {
-        queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).unsorted);
+        queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).unsorted());
       }
       queryClient.invalidateQueries(collectionsQueryOptions({ apiClient }).all);
-      queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).all);
+      queryClient.invalidateQueries(bookmarksQueryOptions({ apiClient }).all());
 
       if (tags) {
         queryClient.invalidateQueries(tagsQueryOptions({ apiClient }).all);

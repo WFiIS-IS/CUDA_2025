@@ -2,9 +2,24 @@ import { createQueryKeyStore } from '@lukemorales/query-key-factory';
 
 export const cacheKeys = createQueryKeyStore({
   bookmarks: {
-    all: null,
-    byCollectionId: (collectionId: string) => [{ collectionId }],
-    unsorted: null,
+    all: {
+      queryKey: null,
+      contextQueries: {
+        search: (search?: string) => [{ search }],
+      },
+    },
+    byCollectionId: (collectionId: string) => ({
+      queryKey: [{ collectionId }],
+      contextQueries: {
+        search: (search?: string) => [{ search }],
+      },
+    }),
+    unsorted: {
+      queryKey: null,
+      contextQueries: {
+        search: (search?: string) => [{ search }],
+      },
+    },
     byId: (id: string) => ({
       queryKey: [{ id }],
       contextQueries: {

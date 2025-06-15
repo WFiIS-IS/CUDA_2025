@@ -17,11 +17,15 @@ import {
 export async function fetchAllBookmarks({
   apiClient,
   collectionId,
-}: CommonQueryParams & { collectionId?: string | null }) {
+  search,
+}: CommonQueryParams & { collectionId?: string | null; search?: string }) {
   const qs = new URLSearchParams();
   if (collectionId !== undefined) {
     // Axios would just skip null values, so we need to stringify it
     qs.append('collectionId', JSON.stringify(collectionId));
+  }
+  if (search) {
+    qs.append('search', search);
   }
 
   const response = await apiClient.get(`/api/bookmarks/?${qs.toString()}`);
@@ -75,8 +79,11 @@ export async function deleteCollection({
 export async function fetchBookmarksByCollectionId({
   apiClient,
   collectionId,
-}: CommonQueryParams & { collectionId: Collection['id'] }) {
-  const response = await apiClient.get(`/api/collections/${collectionId}/bookmarks/`);
+  search,
+}: CommonQueryParams & { collectionId: Collection['id']; search?: string }) {
+  const response = await apiClient.get(`/api/collections/${collectionId}/bookmarks/`, {
+    params: { search },
+  });
   const validatedData = z.array(BookmarkSchema).parse(response.data);
 
   return validatedData;

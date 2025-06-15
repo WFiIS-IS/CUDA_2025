@@ -109,7 +109,7 @@ export function BookmarkEditForm({ bookmarkData, formId }: BookmarkEditFormProps
   return (
     <form onSubmit={handleSubmit} id={formId} className="w-full max-w-full">
       <div className="flex w-full min-w-0 max-w-full grow-0 flex-col space-y-6 py-4">
-        <form.Field name="title">
+        <form.Field name="title" >
           {(field) => (
             <div className="min-w-0 space-y-2">
               <Label htmlFor={field.name}>Title</Label>
@@ -221,9 +221,7 @@ export function BookmarkEditForm({ bookmarkData, formId }: BookmarkEditFormProps
 
         <form.Field name="tags">
           {(field) => {
-            const aiTagsToSuggest = aiSuggestion?.tags
-              ? null
-              : aiSuggestion?.tags.filter((tagName) => !field.state.value.includes(tagName));
+            const aiTagsToSuggest = aiSuggestion?.tags.filter((tagName) => !field.state.value.includes(tagName));
 
             return (
               <div className="min-w-0 space-y-2">
