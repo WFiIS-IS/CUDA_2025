@@ -5,21 +5,19 @@ This module centralizes all model names and provides functions to get
 specific models for different NLP tasks.
 """
 
-import os
-import requests
 import json
 import re
-from dotenv import load_dotenv
 
-load_dotenv()
+import requests
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+from app.config import settings
+
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 
 def gemini_request(prompt, task):
     headers = {"Content-Type": "application/json"}
-    params = {"key": GEMINI_API_KEY}
+    params = {"key": settings.GEMINI_API_KEY}
     data = {"contents": [{"parts": [{"text": f"{task}: {prompt}"}]}]}
     response = requests.post(GEMINI_API_URL, headers=headers, params=params, json=data)
     response.raise_for_status()
