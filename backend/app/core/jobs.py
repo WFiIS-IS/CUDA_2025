@@ -204,7 +204,6 @@ async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any
     summary = await nlp.summarize()
     collection = await nlp.collection(collections)
     title = await nlp.title()
-
     tags = await nlp.tags()
 
     await _save_embedding(url, content)
