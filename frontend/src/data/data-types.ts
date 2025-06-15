@@ -34,3 +34,14 @@ export type Tag = z.infer<typeof TagSchema>;
 export type TagCreate = {
   tag: string;
 };
+
+export const BookmarkAISuggestionSchema = z
+  .object({
+    title: z.string(),
+    description: z.string(),
+    tags: z.array(z.string()),
+    collectionId: z.string().nullable(),
+  })
+  .nullable();
+
+export type BookmarkAISuggestion = z.infer<typeof BookmarkAISuggestionSchema>;

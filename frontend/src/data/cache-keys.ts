@@ -9,6 +9,7 @@ export const cacheKeys = createQueryKeyStore({
       queryKey: [{ id }],
       contextQueries: {
         tags: null,
+        aiSuggestion: null,
       },
     }),
   },

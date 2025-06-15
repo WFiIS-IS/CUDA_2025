@@ -106,6 +106,7 @@ class BookmarkAISuggestion(SQLModel, table=True):
     bookmark: Bookmark = Relationship(back_populates="ai_suggestion")
     title: str = Field(max_length=256)
     description: str = Field(max_length=1024)
+    collection_id: uuid.UUID | None = Field(foreign_key="collection.id", nullable=True)
 
 
 class Tag(SQLModel, table=True):

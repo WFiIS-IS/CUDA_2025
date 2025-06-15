@@ -146,5 +146,6 @@ class BookmarkAISuggestionPublic(BaseModel):
     title: str
     description: str
     tags: list[str] = Field(default_factory=list)
+    collection_id: uuid.UUID | None = Field(default=None)
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

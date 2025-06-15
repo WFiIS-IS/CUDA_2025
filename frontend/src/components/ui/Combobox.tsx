@@ -116,7 +116,7 @@ export function Combobox({
   );
 
   return (
-    <Popover open={localOpen} onOpenChange={setLocalOpen}>
+    <Popover open={localOpen} onOpenChange={setLocalOpen} modal>
       <PopoverTrigger asChild>
         {/* biome-ignore lint/a11y/useSemanticElements: <explanation> */}
         <Button
@@ -126,7 +126,7 @@ export function Combobox({
           size="content"
           className="w-full justify-between"
         >
-          {selectedOptions.length > 0 ? renderSelected(selectedOptions) : placeholder}
+          <span className="truncate">{selectedOptions.length > 0 ? renderSelected(selectedOptions) : placeholder}</span>
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -136,7 +136,7 @@ export function Combobox({
           <CommandList>
             <CommandEmpty>No framework found.</CommandEmpty>
             <CommandGroup>
-              <ScrollArea className="max-h-[200px]">
+              <ScrollArea>
                 {filteredItems.map((item) => (
                   <CommandItem key={item.label} value={item.value} onSelect={handleSelect}>
                     {renderItem({ item, isSelected: selected.includes(item.value) })}
@@ -158,7 +158,7 @@ export function Combobox({
 }
 
 function DefaultSelectRenderer(selected: ComboboxItem[]) {
-  return <div>{selected.map((item) => item.label).join(', ')}</div>;
+  return <>{selected.map((item) => item.label).join(', ')}</>;
 }
 
 function DefaultItemRenderer({ item, isSelected }: { item: ComboboxItem; isSelected: boolean }) {

@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import ms from 'ms';
 
 import type { CommonQueryParams } from '@/data/api-types';
 import {
@@ -6,6 +7,7 @@ import {
   createBookmark,
   deleteBookmark,
   fetchAllBookmarks,
+  fetchBookmarkAISuggestion,
   fetchBookmarkTags,
   fetchBookmarksByCollectionId,
   removeTagFromBookmark,
@@ -39,6 +41,12 @@ export const bookmarksQueryOptions = ({ apiClient, enabled = true }: CommonQuery
       ...cacheKeys.bookmarks.byId(id)._ctx.tags,
       queryFn: () => fetchBookmarkTags({ apiClient, bookmarkId: id }),
       enabled,
+    }),
+    aiSuggestion: queryOptions({
+      ...cacheKeys.bookmarks.byId(id)._ctx.aiSuggestion,
+      queryFn: () => fetchBookmarkAISuggestion({ apiClient, bookmarkId: id }),
+      enabled,
+      refetchInterval: ms('1s'),
     }),
   }),
 });

@@ -3,7 +3,6 @@ import { useId } from 'react';
 
 import { BookmarkEditForm } from '@/components/edit-drawer/BookmarkEditForm';
 import { Button } from '@/components/ui/Button';
-import { ScrollArea } from '@/components/ui/ScrollArea';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/Sheet';
 
 import { closeEditDrawer, useEditDrawerState } from './drawer-store';
@@ -21,7 +20,7 @@ export function EditDrawer() {
         closeEditDrawer();
       }}
     >
-      <SheetContent className="flex flex-col ">
+      <SheetContent className="flex flex-col">
         <SheetHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -34,9 +33,7 @@ export function EditDrawer() {
           </div>
         </SheetHeader>
 
-        <ScrollArea className="min-h-0 grow pr-4">
-          <BookmarkEditForm bookmarkData={initialData} formId={formId} />
-        </ScrollArea>
+        <BookmarkEditForm bookmarkData={initialData} formId={formId} />
 
         <div className="flex justify-between border-t pt-4">
           <Button size="sm" form={formId} type="submit">

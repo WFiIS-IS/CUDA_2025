@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 import type { CommonQueryParams } from '@/data/api-types';
 import {
   type Bookmark,
+  BookmarkAISuggestionSchema,
   type BookmarkCreate,
   BookmarkSchema,
   type BookmarkUpdate,
@@ -127,6 +128,16 @@ export async function fetchAllTags({ apiClient }: CommonQueryParams) {
 export async function createTag({ apiClient, createData }: CommonQueryParams & { createData: TagCreate }) {
   const response = await apiClient.post('/api/tags/', createData);
   const validatedData = TagSchema.parse(response.data);
+
+  return validatedData;
+}
+
+export async function fetchBookmarkAISuggestion({
+  apiClient,
+  bookmarkId,
+}: CommonQueryParams & { bookmarkId: Bookmark['id'] }) {
+  const response = await apiClient.get(`/api/bookmarks/${bookmarkId}/ai-suggestion/`);
+  const validatedData = BookmarkAISuggestionSchema.parse(response.data);
 
   return validatedData;
 }

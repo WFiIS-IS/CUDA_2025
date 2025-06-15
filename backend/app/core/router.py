@@ -432,4 +432,5 @@ async def get_bookmark_ai_suggestion(bookmark_id: uuid.UUID, session: DbSession)
     return BookmarkAISuggestionPublic(
         title=ai_suggestion.title,
         description=ai_suggestion.description,
+        collection_id=ai_suggestion.collection_id,
     )
