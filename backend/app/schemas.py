@@ -140,3 +140,11 @@ class SearchPublic(BaseModel):
     results: list[str]
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class BookmarkAISuggestionPublic(BaseModel):
+    title: str
+    description: str
+    tags: list[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

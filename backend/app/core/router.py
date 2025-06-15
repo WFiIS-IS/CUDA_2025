@@ -10,6 +10,7 @@ from app.core.jobs import process_url
 from app.db import DbSession
 from app.models import (
     Bookmark,
+    BookmarkAISuggestion,
     Collection,
     Job,
     JobStatus,
@@ -17,6 +18,7 @@ from app.models import (
     TagBookmarkAssociation,
 )
 from app.schemas import (
+    BookmarkAISuggestionPublic,
     BookmarkCreate,
     BookmarkPublic,
     BookmarkUpdate,
@@ -408,4 +410,26 @@ async def process_url_endpoint(
         created_at=job.created_at.isoformat(),
         url=job_create.url,
         bookmark_id=str(bookmark.id),
+    )
+
+
+@router.get(
+    "/bookmarks/{bookmark_id}/ai-suggestion/",
+    response_model=BookmarkAISuggestionPublic | None,
+    tags=["links"],
+)
+async def get_bookmark_ai_suggestion(bookmark_id: uuid.UUID, session: DbSession):
+    bookmark = await session.get(Bookmark, bookmark_id)
+    if not bookmark:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Bookmark with id "{bookmark_id}" not found',
+        )
+    ai_suggestion = await session.get(BookmarkAISuggestion, bookmark_id)
+    if not ai_suggestion:
+        return None
+
+    return BookmarkAISuggestionPublic(
+        title=ai_suggestion.title,
+        description=ai_suggestion.description,
     )

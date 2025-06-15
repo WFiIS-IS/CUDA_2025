@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 from enum import Enum, unique
 from typing import Any, Optional
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import func
 from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel
-from pgvector.sqlalchemy import Vector
 
 
 @unique
