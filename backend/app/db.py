@@ -18,7 +18,8 @@ class DbSessionManager:
         settings = get_settings()
 
         self.engine = create_async_engine(
-            dsn or str(settings.SQLALCHEMY_DATABASE_URI), echo=True
+            dsn or str(settings.SQLALCHEMY_DATABASE_URI),
+            echo=True,
         )
         self.async_sessionmaker = async_sessionmaker(
             bind=self.engine, expire_on_commit=self.expire_on_commit

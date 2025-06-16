@@ -29,6 +29,7 @@ class TagsRepository:
 
     async def delete(self, tag_name: str) -> int:
         result = await self.session.execute(delete(Tag).where(Tag.name == tag_name))
+        await self.session.commit()
         return result.rowcount
 
 

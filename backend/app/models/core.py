@@ -46,7 +46,7 @@ class Bookmark(Base, IdMixin):
     )
 
     collection_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("collection.id"), nullable=True, default=None
+        ForeignKey("collection.id", ondelete="SET NULL"), nullable=True, default=None
     )
     collection: Mapped["Collection | None"] = relationship(
         back_populates="bookmarks", uselist=False, init=False
@@ -56,6 +56,7 @@ class Bookmark(Base, IdMixin):
         back_populates="bookmark",
         uselist=False,
         init=False,
+        cascade="all, delete",
     )
 
     tags: Mapped[list["Tag"]] = relationship(

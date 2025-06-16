@@ -16,7 +16,7 @@ class BookmarkAISuggestion(Base):
     __tablename__ = "bookmark_ai_suggestion"
 
     bookmark_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("bookmark.id"), primary_key=True
+        ForeignKey("bookmark.id", ondelete="CASCADE"), primary_key=True
     )
     bookmark: Mapped[Bookmark] = relationship(
         back_populates="ai_suggestion", uselist=False, init=False
@@ -25,7 +25,7 @@ class BookmarkAISuggestion(Base):
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str] = mapped_column(String(1024), nullable=False)
     collection_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("collection.id"), nullable=True, default=None
+        ForeignKey("collection.id", ondelete="SET NULL"), nullable=True, default=None
     )
     tags: Mapped[list[str]] = mapped_column(
         ARRAY(String(64)), default=list, server_default=text("{}")

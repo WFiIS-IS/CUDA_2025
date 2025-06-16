@@ -36,7 +36,7 @@ class Job(Base, IdMixin, CreatedUpdatedAtMixin):
     __tablename__ = "job"
 
     bookmark_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("bookmark.id"), nullable=False, index=True
+        ForeignKey("bookmark.id", ondelete="CASCADE"), nullable=False, index=True
     )
     bookmark: Mapped[Bookmark] = relationship(
         back_populates="jobs", init=False, uselist=False

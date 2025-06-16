@@ -39,6 +39,7 @@ class CollectionRepository:
         result = await self.session.execute(
             delete(Collection).where(Collection.id == collection_id)
         )
+        await self.session.commit()
         return result.rowcount
 
 

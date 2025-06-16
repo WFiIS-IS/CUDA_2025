@@ -10,7 +10,7 @@ from typing import Any
 
 from sqlmodel import select
 
-from app.db import get_async_session
+from app.db import get_db_session_manager
 from app.models import Tag
 
 from .llm_models import (
@@ -108,20 +108,28 @@ class NLPLayer:
         Uses async for session in get_async_session() for DB access. Does NOT use DbSession.
         """
 
-        async for session in get_async_session():
-            result = await session.exec(select(Tag.name))
+        session_manager = get_db_session_manager()
 
-            all_tags = list(result)
+        def process_tag(tag: str) -> str:
+            """Process tag to ensure it is a valid string."""
+            return tag.strip().lower() if tag else ""
+
+        async with session_manager.get_session() as session:
+            result = await session.execute(select(Tag.name))
+
+            all_tags = result.scalars().all()
             truncated_text = self.text[: self.max_text_length]
             tags_model = get_tags_model(all_tags)
             # Use default arguments to bind variables in lambda
             loop = asyncio.get_event_loop()
             tags_result = await loop.run_in_executor(
                 None,
-                lambda tags_model=tags_model, truncated_text=truncated_text: tags_model(truncated_text),
+                lambda tags_model=tags_model, truncated_text=truncated_text: tags_model(
+                    truncated_text
+                ),
             )
+            tags_result = [process_tag(tag) for tag in tags_result]
             print(f"=====================Tags result: {tags_result}")
             return tags_result
 
         return []
-

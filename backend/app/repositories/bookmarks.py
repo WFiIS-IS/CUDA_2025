@@ -63,6 +63,7 @@ class BookmarkRepository:
         result = await self.session.execute(
             delete(Bookmark).where(Bookmark.id == bookmark_id)
         )
+        await self.session.commit()
         return result.rowcount
 
     async def update(
@@ -84,6 +85,7 @@ class BookmarkRepository:
                 collection_id=collection_id,
             )
         )
+        await self.session.commit()
         return result.rowcount
 
 

@@ -30,9 +30,11 @@ class TagBookmarkAssociation(Base):
 
     __tablename__ = "tag_bookmark_association"
 
-    tag_name: Mapped[str] = mapped_column(ForeignKey("tag.name"), primary_key=True)
+    tag_name: Mapped[str] = mapped_column(
+        ForeignKey("tag.name", ondelete="CASCADE"), primary_key=True
+    )
     bookmark_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("bookmark.id"), primary_key=True
+        ForeignKey("bookmark.id", ondelete="CASCADE"), primary_key=True
     )
 
 
