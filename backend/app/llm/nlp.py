@@ -10,7 +10,7 @@ from typing import Any
 
 from sqlmodel import select
 
-from app.db import DbSession
+from app.db import get_async_session
 from app.models import Tag
 
 from .llm_models import (
@@ -105,23 +105,26 @@ class NLPLayer:
     async def tags(self) -> list[str]:
         """
         Suggest tags for the given text using the collection model and all tags from the database.
+        Uses async for session in get_async_session() for DB access. Does NOT use DbSession.
         """
 
-        async def get_all_tags():
-            async with DbSession() as session:
-                result = await session.exec(select(Tag.name))
-                return list(result)
+        async for session in get_async_session():
+            result = await session.exec(select(Tag.name))
 
-        all_tags = await get_all_tags()
-        if not all_tags:
-            return []
+            all_tags = list(result)
+            # if not all_tags:
+            #     return []
 
-        truncated_text = self.text[: self.max_text_length]
-        loop = asyncio.get_event_loop()
-        pipeline = get_tags_model(all_tags)
-        result = await loop.run_in_executor(None, lambda: pipeline(truncated_text))
+            truncated_text = self.text[: self.max_text_length]
+            tags_model = get_tags_model(all_tags)
+            # Use default arguments to bind variables in lambda
+            loop = asyncio.get_event_loop()
+            tags_result = await loop.run_in_executor(
+                None,
+                lambda tags_model=tags_model, truncated_text=truncated_text: tags_model(truncated_text),
+            )
 
-        if isinstance(result, dict) and "labels" in result:
-            return result["labels"]
+            return tags_result
+
         return []
 
