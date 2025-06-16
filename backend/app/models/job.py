@@ -59,6 +59,10 @@ class Job(Base, IdMixin, CreatedUpdatedAtMixin):
         nullable=True,
         default=None,
     )
+    error_message: Mapped[str | None] = mapped_column(
+        nullable=True,
+        default=None,
+    )
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         init=False,

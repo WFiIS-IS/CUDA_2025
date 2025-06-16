@@ -2,9 +2,12 @@ import uuid
 from http import HTTPStatus
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
+from sqlalchemy import select
 
+from app.core.jobs import process_url
 from app.db import DbSessionDep
+from app.models.job import Job, JobStatus
 from app.repositories.bookmarks import BookmarkRepositoryDep
 from app.repositories.collections import CollectionRepositoryDep
 from app.repositories.tags import TagsRepositoryDep
@@ -131,6 +134,8 @@ async def create_collection_bookmark(
     body: BookmarkCreate,
     bookmark_repository: BookmarkRepositoryDep,
     collection_repository: CollectionRepositoryDep,
+    session: DbSessionDep,
+    background_tasks: BackgroundTasks,
 ):
     """Create a new bookmark in a specific collection."""
     collection = await collection_repository.get_by_id(collection_id)
@@ -144,15 +149,16 @@ async def create_collection_bookmark(
         collection_id=collection_id,
     )
 
-    # existing_job = await session.exec(select(Job).where(Job.bookmark_id == link_entry.id))
-    # job = existing_job.first()
-    # if not job or job.status == JobStatus.FAILED:
-    #     job_create = JobCreate(url=link_entry.url)
-    #     job = Job.model_validate(job_create, update={"bookmark_id": link_entry.id})
-    #     session.add(job)
-    #     await session.commit()
-    #     await session.refresh(job)
-    #     background_tasks.add_task(process_url, str(job.id), link_entry.url)
+    existing_job = await session.execute(
+        select(Job).where(Job.bookmark_id == bookmark.id)
+    )
+    job = existing_job.scalar_one_or_none()
+    if not job or job.status == JobStatus.FAILED:
+        job = Job(bookmark_id=bookmark.id)
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        background_tasks.add_task(process_url, str(job.id), bookmark.url)
 
     return BookmarkPublic.model_validate(bookmark)
 
@@ -166,6 +172,8 @@ async def update_collection_bookmark(
     bookmark_id: uuid.UUID,
     body: BookmarkUpdate,
     bookmark_repository: BookmarkRepositoryDep,
+    session: DbSessionDep,
+    background_tasks: BackgroundTasks,
 ):
     """Update an existing bookmark."""
     updated_count = await bookmark_repository.update(
@@ -183,15 +191,16 @@ async def update_collection_bookmark(
             detail=f'Bookmark with id "{bookmark_id}" not found',
         )
 
-    # existing_job = await session.exec(select(Job).where(Job.bookmark_id == bookmark.id))
-    # job = existing_job.first()
-    # if not job or job.status == JobStatus.FAILED:
-    #     job_create = JobCreate(url=bookmark.url)
-    #     job = Job.model_validate(job_create, update={"bookmark_id": bookmark.id})
-    #     session.add(job)
-    #     await session.commit()
-    #     await session.refresh(job)
-    #     background_tasks.add_task(process_url, str(job.id), bookmark.url)
+    existing_job = await session.execute(
+        select(Job).where(Job.bookmark_id == bookmark.id)
+    )
+    job = existing_job.scalar_one_or_none()
+    if not job or job.status == JobStatus.FAILED:
+        job = Job(bookmark_id=bookmark.id)
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        background_tasks.add_task(process_url, str(job.id), bookmark.url)
 
     return BookmarkPublic.model_validate(bookmark)
 
@@ -205,6 +214,8 @@ async def create_bookmark(
     body: BookmarkCreate,
     bookmark_repository: BookmarkRepositoryDep,
     collection_repository: CollectionRepositoryDep,
+    session: DbSessionDep,
+    background_tasks: BackgroundTasks,
 ):
     """Create a new bookmark."""
     collection_id = body.collection_id
@@ -219,15 +230,16 @@ async def create_bookmark(
         **body.model_dump(exclude_unset=True),
     )
 
-    # existing_job = await session.exec(select(Job).where(Job.bookmark_id == bookmark.id))
-    # job = existing_job.first()
-    # if not job or job.status == JobStatus.FAILED:
-    #     job_create = JobCreate(url=bookmark.url)
-    #     job = Job.model_validate(job_create, update={"bookmark_id": bookmark.id})
-    #     session.add(job)
-    #     await session.commit()
-    #     await session.refresh(job)
-    #     background_tasks.add_task(process_url, str(job.id), bookmark.url)
+    existing_job = await session.execute(
+        select(Job).where(Job.bookmark_id == bookmark.id)
+    )
+    job = existing_job.scalar_one_or_none()
+    if not job or job.status == JobStatus.FAILED:
+        job = Job(bookmark_id=bookmark.id)
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        background_tasks.add_task(process_url, str(job.id), bookmark.url)
 
     return BookmarkPublic.model_validate(bookmark)
 
@@ -363,62 +375,3 @@ async def get_bookmark_ai_suggestion(
         collection_id=ai_suggestion.collection_id,
         tags=ai_suggestion.tags,
     )
-
-
-# @router.post("/process_url", response_model=JobSummaryPublic, tags=["processing"])
-# async def process_url_endpoint(
-#     background_tasks: BackgroundTasks,
-#     db: DbSession,
-#     job_create: JobCreate,
-# ) -> JobSummaryPublic:
-#     """Submit a URL for scraping and analysis.
-
-#     This endpoint accepts a URL and returns a task ID that can be used to
-#     check the scraping progress and retrieve results asynchronously.
-
-#     Args:
-#         background_tasks (BackgroundTasks): FastAPI background tasks manager.
-#         db (DbSession): Database session dependency.
-#         url (HttpUrl): The URL to scrape. Must be a valid HTTP/HTTPS URL.
-
-#     Returns:
-#         ScrapingTask: Task information including unique ID for tracking.
-#                      If a job is already processing for this URL, returns that job's info.
-
-#     Example:
-#         GET /scrapper/scrape?url=https://example.com
-#     """
-
-#     # Check if there is a bookmark for this url
-#     existing_bookmark = await db.exec(
-#         select(Bookmark).where(Bookmark.url == job_create.url)
-#     )
-#     bookmark = existing_bookmark.first()
-
-#     if not bookmark:
-#         bookmark = Bookmark(url=job_create.url)
-#         db.add(bookmark)
-#         await db.commit()
-#         await db.refresh(bookmark)
-
-#     existing_job = await db.exec(select(Job).where(Job.bookmark_id == bookmark.id))
-#     job = existing_job.first()
-
-#     if job and job.status != JobStatus.FAILED:
-#         return JobSummaryPublic.model_validate(job)
-
-#     job = Job.model_validate(job_create, update={"bookmark_id": bookmark.id})
-
-#     db.add(job)
-#     await db.commit()
-#     await db.refresh(job)
-
-#     background_tasks.add_task(process_url, str(job.id), job_create.url)
-
-#     return JobSummaryPublic(
-#         id=str(job.id),
-#         status=job.status.value,
-#         created_at=job.created_at.isoformat(),
-#         url=job_create.url,
-#         bookmark_id=str(bookmark.id),
-#     )

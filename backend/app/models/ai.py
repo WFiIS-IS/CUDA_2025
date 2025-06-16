@@ -28,7 +28,7 @@ class BookmarkAISuggestion(Base):
         ForeignKey("collection.id"), nullable=True, default=None
     )
     tags: Mapped[list[str]] = mapped_column(
-        ARRAY(String(64)), default=list, init=False, server_default=text("{}")
+        ARRAY(String(64)), default=list, server_default=text("{}")
     )
 
 
