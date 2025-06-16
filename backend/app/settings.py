@@ -1,4 +1,6 @@
-from pydantic import PostgresDsn, computed_field
+from functools import lru_cache
+
+from pydantic import Field, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +13,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "postgres"
-    GEMINI_API_KEY: str
+    GEMINI_API_KEY: str = Field(..., init=False)
 
     @computed_field
     @property
@@ -26,4 +28,6 @@ class Settings(BaseSettings):
         )
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
