@@ -53,10 +53,6 @@ class BookmarkAISuggestionPublic(BaseSchema):
         ...,
         description="The title of the AI-generated bookmark suggestion.",
     )
-    url: str = Field(
-        ...,
-        description="The URL of the AI-generated bookmark suggestion.",
-    )
     description: str = Field(
         ...,
         description="A brief description of the AI-generated bookmark suggestion.",

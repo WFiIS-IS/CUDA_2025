@@ -6,8 +6,9 @@ from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends
-from settings import get_settings
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.settings import get_settings
 
 
 class DbSessionManager:

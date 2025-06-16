@@ -2,12 +2,10 @@ import asyncio
 import logging
 
 import uvicorn
-from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 
-from app.db import async_engine
+from app.db import DbSessionManager, get_db_session_manager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,10 +20,10 @@ wait_seconds = 1
     before=before_log(logger, logging.INFO),
     after=after_log(logger, logging.WARN),
 )
-async def init(db_engine: AsyncEngine) -> None:
+async def init(session_manager: DbSessionManager) -> None:
     try:
-        async with AsyncSession(db_engine) as session:
-            await session.exec(select(1))
+        async with session_manager.get_session() as session:
+            await session.execute(select(1))  # Simple query to check DB connection
     except Exception as e:
         logger.error(e)
         raise e
@@ -35,7 +33,8 @@ if __name__ == "__main__":
 
     async def main() -> None:
         logging.info("Waiting for DB to be ready...")
-        await init(async_engine)
+        session_manager = get_db_session_manager()
+        await init(session_manager)
         logging.info("DB is ready, starting FastAPI app...")
         uvicorn.run("app.main:app", host="localhost", port=8080, reload=True)
 

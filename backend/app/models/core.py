@@ -1,8 +1,14 @@
+__all__ = [
+    "Collection",
+    "Bookmark",
+]
+
 import typing
 import uuid
+from dataclasses import field
 
-from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey, String, func, select
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.models.base import Base, IdMixin
 
@@ -23,6 +29,7 @@ class Collection(Base, IdMixin):
         back_populates="collection",
         init=False,
     )
+    bookmarks_count: Mapped[int] = field(init=False)
 
 
 class Bookmark(Base, IdMixin):
@@ -41,7 +48,7 @@ class Bookmark(Base, IdMixin):
     collection_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("collection.id"), nullable=True, default=None
     )
-    collection: Mapped[Collection | None] = relationship(
+    collection: Mapped["Collection | None"] = relationship(
         back_populates="bookmarks", uselist=False, init=False
     )
 
@@ -61,3 +68,12 @@ class Bookmark(Base, IdMixin):
         back_populates="bookmark",
         init=False,
     )
+
+
+Collection.bookmarks_count = column_property(
+    select(func.count(Bookmark.id))
+    .where(Bookmark.collection_id == Collection.id)
+    .correlate_except(Bookmark)
+    .scalar_subquery(),
+    init=False,
+)

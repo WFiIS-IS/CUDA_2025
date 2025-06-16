@@ -1,3 +1,5 @@
+__all__ = ["BookmarkAISuggestion", "ContentEmbedding"]
+
 import uuid
 
 from pgvector.sqlalchemy import Vector
@@ -17,7 +19,7 @@ class BookmarkAISuggestion(Base):
         ForeignKey("bookmark.id"), primary_key=True
     )
     bookmark: Mapped[Bookmark] = relationship(
-        back_populates="ai_suggestions", uselist=False, init=False
+        back_populates="ai_suggestion", uselist=False, init=False
     )
 
     title: Mapped[str] = mapped_column(String(256), nullable=False)

@@ -1,7 +1,10 @@
-import uuid
+__all__ = ["Tag", "TagBookmarkAssociation"]
 
-from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+import uuid
+from dataclasses import field
+
+from sqlalchemy import ForeignKey, String, func, select
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.models.base import Base
 from app.models.core import Bookmark
@@ -19,6 +22,7 @@ class Tag(Base):
         back_populates="tags",
         init=False,
     )
+    usage_count: Mapped[int] = field(init=False)
 
 
 class TagBookmarkAssociation(Base):
@@ -30,3 +34,12 @@ class TagBookmarkAssociation(Base):
     bookmark_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("bookmark.id"), primary_key=True
     )
+
+
+Tag.usage_count = column_property(
+    select(func.count("*"))
+    .where(TagBookmarkAssociation.tag_name == Tag.name)
+    .correlate_except(Tag)
+    .scalar_subquery(),
+    init=False,
+)
