@@ -1,11 +1,8 @@
-import asyncio
-
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
 # Import playwright_stealth for stealth mode
 from playwright_stealth import stealth_async
-
 
 # Add imports for new modules
 

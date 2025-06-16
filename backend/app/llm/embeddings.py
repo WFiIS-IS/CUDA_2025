@@ -8,7 +8,6 @@ for semantic search capabilities.
 import asyncio
 import hashlib
 import logging
-from typing import Any
 
 from sentence_transformers import SentenceTransformer
 

@@ -10,9 +10,11 @@ import re
 
 import requests
 
-from app.config import settings
+from app.settings import get_settings
 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+settings = get_settings()
 
 
 def gemini_request(prompt, task):

@@ -1,45 +1,72 @@
 """Job management functions for scrapper module."""
 
 import asyncio
-import json
-import uuid
-from typing import Any
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from sqlmodel import col, select
+from pydantic import BaseModel, field_serializer
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-from app.db import get_async_session
+from app.db import get_db_session_manager
+from app.llm.embeddings import EmbeddingLayer
 from app.llm.nlp import NLPLayer
-from app.models import Bookmark, BookmarkAISuggestion, Collection, Job, JobStatus
-from app.schemas import AnalysisResults
-
+from app.models import (
+    Bookmark,
+    BookmarkAISuggestion,
+    Collection,
+    ContentEmbedding,
+    Job,
+    JobStatus,
+)
+from app.schemas.base import convert_numpy_types
 from app.scrapper.content_extractor import ContentExtractor
 from app.scrapper.scrapper import Scrapper
-
-from app.llm.embeddings import EmbeddingLayer
-from app.models import ContentEmbedding
-from sqlmodel import select
 
 JOB_TIMEOUT_SECONDS = 600
 
 
+class AnalysisResults(BaseModel):
+    """Pydantic model for analysis results with automatic type conversion."""
+
+    summary: str
+    collection: str
+    title: str
+    tags: list[str]
+
+    @field_serializer("summary", "collection", "title", "tags")
+    def serialize_fields(self, value: Any) -> Any:
+        """Custom serializer to handle numpy types."""
+        return convert_numpy_types(value)
+
+
 async def cleanup_orphaned_jobs() -> None:
     """Clean up jobs that are stuck in PROCESSING state from previous app runs."""
-    async for session in get_async_session():
+    session_manager = get_db_session_manager()
+    async with session_manager.get_session() as session:
         try:
             # Find jobs that have been processing for more than timeout duration
             timeout_threshold = datetime.now(UTC) - timedelta(
                 seconds=JOB_TIMEOUT_SECONDS
             )
 
-            query = select(Job).where(
-                Job.status == JobStatus.PROCESSING, Job.created_at < timeout_threshold
+            result = await session.execute(
+                select(Job)
+                .where(
+                    Job.status == JobStatus.PROCESSING,
+                    Job.created_at < timeout_threshold,
+                )
+                .options(
+                    selectinload(Job.bookmark),
+                )
             )
-            result = await session.exec(query)
-            orphaned_jobs = result.all()
+            orphaned_jobs = result.scalars().all()
 
             for job in orphaned_jobs:
-                print(f"🧹 Cleaning up orphaned job {job.id} for URL: {job.url}")
+                print(
+                    f"🧹 Cleaning up orphaned job {job.id} for URL: {job.bookmark.url}"
+                )
                 job.status = JobStatus.FAILED
                 job.completed_at = datetime.now(UTC)
                 job.error_message = "Job timed out or app was restarted"
@@ -53,7 +80,6 @@ async def cleanup_orphaned_jobs() -> None:
 
         except Exception as e:
             print(f"❌ Error cleaning up orphaned jobs: {e}")
-        break  # Only use first session from generator
 
 
 async def process_url(task_id: str, url: str) -> None:
@@ -63,10 +89,18 @@ async def process_url(task_id: str, url: str) -> None:
         task_id (str): Unique identifier for the processing task.
         url (str): The URL to process.
     """
-    async for session in get_async_session():
+    session_manager = get_db_session_manager()
+    async with session_manager.get_session() as session:
+        result = await session.execute(
+            select(Job)
+            .where(Job.id == task_id)
+            .options(
+                selectinload(Job.bookmark),
+            )
+        )
+        job = result.scalar_one_or_none()
         try:
             # Get the job from database
-            job = await session.get(Job, uuid.UUID(task_id))
             if not job:
                 print(f"❌ Job {task_id} not found in database")
                 return
@@ -85,8 +119,8 @@ async def process_url(task_id: str, url: str) -> None:
             )
 
             try:
-                collections = await session.exec(select(Collection))
-                collections = collections.all()
+                collections = await session.execute(select(Collection))
+                collections = collections.scalars().all()
 
                 results = await asyncio.wait_for(
                     _process_url(url, collections), timeout=JOB_TIMEOUT_SECONDS
@@ -105,15 +139,17 @@ async def process_url(task_id: str, url: str) -> None:
                     print(f"❌ Bookmark {job.bookmark_id} not found in database")
                     return
 
-                collection = await session.exec(
+                collection = await session.execute(
                     select(Collection).where(
                         Collection.name == analysis_results.collection
                     )
                 )
-                collection = collection.first()
+                collection = collection.scalars().first()
 
                 if not collection:
-                    print(f"❌ Collection '{analysis_results.collection}' not found. Assigning None.")
+                    print(
+                        f"❌ Collection '{analysis_results.collection}' not found. Assigning None."
+                    )
                     # Do not create a new collection, just assign None
                 else:
                     print(f"📂 Using collection: {collection.name}")
@@ -155,7 +191,6 @@ async def process_url(task_id: str, url: str) -> None:
                 session.add(job)
                 await session.commit()
                 print(f"❌ Job {task_id} marked as FAILED due to timeout")
-
         except Exception as e:
             print(f"💥 Job {task_id} failed with error: {str(e)}")
             # Update job with error information
@@ -166,10 +201,9 @@ async def process_url(task_id: str, url: str) -> None:
                 session.add(job)
                 await session.commit()
                 print(f"❌ Job {task_id} marked as FAILED in database")
-        break  # Only use first session from generator
 
 
-async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any]:
+async def _process_url(url: str, collections: Sequence[Collection]) -> dict[str, Any]:
     """Process a single URL through the complete analysis pipeline.
 
     This function handles the full scraping and analysis workflow for a given URL,
@@ -204,11 +238,11 @@ async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any
     content_extractor = ContentExtractor(scrapper.soup)
     content = content_extractor.extract()
 
-    collections = [collection.name for collection in collections]
+    collection_names = [collection.name for collection in collections]
 
     nlp = NLPLayer(content)
     summary = await nlp.summarize()
-    collection = await nlp.collection(collections)
+    collection = await nlp.collection(collection_names)
     title = await nlp.title()
     tags = await nlp.tags()
 
@@ -236,15 +270,16 @@ async def _save_embedding(url: str, content: str) -> list[float]:
     # Create embedding layer instance
     embedding_layer = EmbeddingLayer(content)
     content_hash = embedding_layer.get_content_hash()
+    session_manager = get_db_session_manager()
 
-    async for session in get_async_session():
+    async with session_manager.get_session() as session:
         # Check if embedding already exists for this content
         existing_query = select(ContentEmbedding).where(
             ContentEmbedding.content_hash == content_hash,
             ContentEmbedding.url == url,
         )
-        existing_embedding = await session.exec(existing_query)
-        existing_embedding = existing_embedding.first()
+        existing_embedding = await session.execute(existing_query)
+        existing_embedding = existing_embedding.scalar_one_or_none()
 
         if existing_embedding:
             print(f"📊 Embedding already exists for URL: {url}")
@@ -267,5 +302,3 @@ async def _save_embedding(url: str, content: str) -> list[float]:
 
         print(f"💾 Embedding saved for URL: {url}")
         return embedding_vector
-
-        break  # Only use first session from generator
