@@ -112,9 +112,6 @@ class NLPLayer:
             result = await session.exec(select(Tag.name))
 
             all_tags = list(result)
-            # if not all_tags:
-            #     return []
-
             truncated_text = self.text[: self.max_text_length]
             tags_model = get_tags_model(all_tags)
             # Use default arguments to bind variables in lambda
@@ -123,7 +120,7 @@ class NLPLayer:
                 None,
                 lambda tags_model=tags_model, truncated_text=truncated_text: tags_model(truncated_text),
             )
-
+            print(f"=====================Tags result: {tags_result}")
             return tags_result
 
         return []

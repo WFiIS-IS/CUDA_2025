@@ -1,11 +1,12 @@
 """Job management functions for scrapper module."""
 
 import asyncio
+import json
 import uuid
 from typing import Any
 from datetime import UTC, datetime, timedelta
 
-from sqlmodel import select
+from sqlmodel import col, select
 
 from app.db import get_async_session
 from app.llm.nlp import NLPLayer
@@ -112,18 +113,23 @@ async def process_url(task_id: str, url: str) -> None:
                 collection = collection.first()
 
                 if not collection:
-                    print(f"🔍 Creating new collection: {analysis_results.collection}")
-                    collection = Collection(name=analysis_results.collection)
+                    print(f"❌ Collection '{analysis_results.collection}' not found. Assigning None.")
+                    # Do not create a new collection, just assign None
+                else:
+                    print(f"📂 Using collection: {collection.name}")
+                    # bookmark.collection_id = collection.id
 
-                    session.add(collection)
-                    await session.commit()
-                    await session.refresh(collection)
-
-                bookmark.collection_id = collection.id
+                print(f"📖 Bookmark ID: {bookmark.id}")
+                print(f"🔖 Bookmark URL: {bookmark.url}")
+                print(f"📝 Bookmark Title: {analysis_results.title}")
+                print(f"📄 Bookmark Description: {analysis_results.summary}")
+                print(f"🏷️ Bookmark Tags: {analysis_results.tags}")
+                # bookmark.collection_id = collection.id
                 ai_suggestion = BookmarkAISuggestion(
                     title=analysis_results.title,
                     description=analysis_results.summary,
                     bookmark_id=job.bookmark_id,
+                    collection_id=collection.id if collection else None,
                     tags=analysis_results.tags,
                 )
 
@@ -212,7 +218,7 @@ async def _process_url(url: str, collections: list[Collection]) -> dict[str, Any
         "summary": summary,
         "collection": collection,
         "title": title,
-        "tags": list(tags),
+        "tags": tags,
     }
 
 

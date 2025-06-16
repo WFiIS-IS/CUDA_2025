@@ -217,7 +217,8 @@ async def create_bookmark(session: DbSession, body: BookmarkCreate, background_t
                 status_code=HTTPStatus.NOT_FOUND,
                 detail=f'Collection with id "{collection_Id}" not found',
             )
-    bookmark = Bookmark.model_validate(body, update={"collection_id": collection_Id})
+    bookmark = Bookmark.model_validate(body,update={"collection_id": collection_Id} )
+    bookmark = Bookmark.model_validate(body )
     session.add(bookmark)
     await session.commit()
     await session.refresh(bookmark)
@@ -468,4 +469,5 @@ async def get_bookmark_ai_suggestion(bookmark_id: uuid.UUID, session: DbSession)
         title=ai_suggestion.title,
         description=ai_suggestion.description,
         collection_id=ai_suggestion.collection_id,
+        tags=ai_suggestion.tags
     )
